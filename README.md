@@ -56,30 +56,6 @@ Abra [http://localhost:8787](http://localhost:8787).
 docker compose up -d
 ```
 
-### GitHub Actions (publicação automática)
-
-Igual ao [dfindexer](https://github.com/DFlexy/dfindexer): push na `main` publica **`ghcr.io/dflexy/dashflex:latest`** (amd64 + arm64).
-
-#### Se der `permission_denied: write_package`
-
-O [dfindexer](https://github.com/DFlexy/dfindexer) usa o mesmo fluxo na conta **DFlexy**. Compare as configurações **dos dois repositórios**:
-
-**A) Permissões do workflow (dashflex)**  
-[github.com/DFlexy/dashflex/settings/actions](https://github.com/DFlexy/dashflex/settings/actions)
-
-- **Workflow permissions** → **Read and write permissions** → **Save**  
-- (Não deixe em “Read repository contents permission only”.)
-
-**B) Acesso do pacote GHCR (se o pacote `dashflex` já existir)**  
-[github.com/users/DFlexy/packages/container/dashflex/settings](https://github.com/users/DFlexy/packages/container/dashflex/settings)
-
-- **Manage Actions access** → **Add Repository** → `DFlexy/dashflex` → role **Write** → **Add**
-
-Compare com o pacote do dfindexer:  
-[github.com/users/DFlexy/packages/container/dfindexer/settings](https://github.com/users/DFlexy/packages/container/dfindexer/settings)
-
-Depois do primeiro push OK: **Packages → dashflex → Public**.
-
 ## Licença
 
 Open-source — consulte o repositório para termos de uso.
