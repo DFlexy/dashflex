@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>DashFlex — Docker</title>
+    <link rel="icon" href="/logo/logo.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/logo/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        var k = "dashflex_ui_theme";
+        var t = localStorage.getItem(k);
+        if (t === "frost" || t === "glass") document.documentElement.dataset.theme = t;
+        else if (t === "aurora") document.documentElement.dataset.theme = "frost";
+        else document.documentElement.dataset.theme = "glass";
+      })();
+      (function () {
+        var k = "dashflex_ui_language";
+        var lang = localStorage.getItem(k);
+        if (lang !== "en" && lang !== "pt") {
+          var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"];
+          lang = "en";
+          for (var i = 0; i < langs.length; i++) {
+            if (String(langs[i] || "").toLowerCase().indexOf("pt") === 0) {
+              lang = "pt";
+              break;
+            }
+          }
+        }
+        document.documentElement.lang = lang === "pt" ? "pt-BR" : "en-US";
+        document.documentElement.dataset.locale = lang;
+      })();
+    </script>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="site-header">
+        <div class="site-header__brand">
+          <div class="brand-mark" id="brandMark" hidden>
+            <img id="brandLogo" class="brand-logo" src="/logo/logo.png" alt="" width="28" height="28" decoding="async" />
+          </div>
+          <span class="brand">DashFlex</span>
+        </div>
+        <nav class="site-nav" aria-label="Navegação principal" data-i18n-aria="nav.main">
+          <button type="button" class="nav-btn active" data-view="dash" data-i18n-title="nav.dashboard" data-i18n-aria="nav.dashboard" aria-label="Dashboard">
+            <span class="nav-btn-ico" aria-hidden="true"
+              ><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span
+            ><span class="nav-btn-text" data-i18n="nav.dashboard">Dashboard</span>
+          </button>
+          <button type="button" class="nav-btn" data-view="overview" data-i18n-title="nav.overview" data-i18n-aria="nav.overview" aria-label="Visão geral">
+            <span class="nav-btn-ico" aria-hidden="true"
+              ><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span
+            ><span class="nav-btn-text" data-i18n="nav.overview">Visão geral</span>
+          </button>
+          <button type="button" class="nav-btn" data-view="containers" data-i18n-title="nav.containers" data-i18n-aria="nav.containers" aria-label="Containers">
+            <span class="nav-btn-ico" aria-hidden="true"
+              ><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span
+            ><span class="nav-btn-text" data-i18n="nav.containers">Containers</span>
+          </button>
+          <button type="button" class="nav-btn" data-view="images" data-i18n-title="nav.images" data-i18n-aria="nav.images" aria-label="Imagens">
+            <span class="nav-btn-ico" aria-hidden="true"
+              ><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span
+            ><span class="nav-btn-text" data-i18n="nav.images">Imagens</span>
+          </button>
+          <button type="button" class="nav-btn" data-view="admin" data-i18n-title="nav.admin" data-i18n-aria="nav.admin" aria-label="Administrativo">
+            <span class="nav-btn-ico" aria-hidden="true"
+              ><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2"/></svg></span
+            ><span class="nav-btn-text" data-i18n="nav.admin">Admin</span>
+          </button>
+        </nav>
+        <div class="site-header__meta">
+          <span class="docker-meta" id="dockerMeta">—</span>
+        </div>
+      </header>
+
+      <div class="layout-body" id="mainColumn">
+        <main class="content">
+          <section id="view-overview" class="view hidden">
+            <h1 class="page-title" data-i18n="page.overview">Visão geral</h1>
+            <div id="banner" class="banner hidden"></div>
+            <div class="kpi-row" id="kpiRow"></div>
+            <div class="charts-row charts-row-compact">
+              <div class="panel chart-panel">
+                <div class="panel-h" data-i18n="charts.cpu" data-i18n-html>CPU % · por containers <span class="muted">maior → menor</span></div>
+                <div class="chart-canvas-wrap"><div id="chartCpuBars" class="simple-bar-chart"></div></div>
+              </div>
+              <div class="panel chart-panel">
+                <div class="panel-h" data-i18n="charts.mem" data-i18n-html>MEM (KB) por containers <span class="muted">maior → menor</span></div>
+                <div class="chart-canvas-wrap"><div id="chartMemBars" class="simple-bar-chart"></div></div>
+              </div>
+            </div>
+            <div class="charts-row charts-row-compact">
+              <div class="panel chart-panel">
+                <div class="panel-h" data-i18n="charts.net" data-i18n-html>Rede RX + TX (MB) <span class="muted">maior → menor</span></div>
+                <div class="chart-canvas-wrap"><div id="chartNetBars" class="simple-bar-chart"></div></div>
+              </div>
+              <div class="panel host-panel">
+                <div class="panel-h" data-i18n="charts.host">Host local</div>
+                <div class="host-table-scroll"><table class="host-table" id="hostTable"></table></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-dash" class="view dash-view-solo">
+            <div class="dash-grid dash-grid--solo" id="dashGrid"></div>
+          </section>
+
+          <section id="view-containers" class="view hidden">
+            <h1 class="page-title" data-i18n="page.containers">Containers</h1>
+            <div id="containersBanner" class="banner hidden"></div>
+            <div class="toolbar toolbar-wrap">
+              <label><input type="checkbox" id="showAllContainers" checked /> <span data-i18n="containers.show_stopped">Mostrar parados</span></label>
+              <button type="button" class="btn" id="refreshContainers" data-i18n="containers.refresh">Atualizar</button>
+              <span class="toolbar-hint" data-i18n="containers.sort_hint">Ordenar: clique no cabeçalho da coluna. Health = Docker.</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="containersTable">
+                <thead>
+                  <tr>
+                    <th class="th-narrow" scope="col" data-i18n-aria="containers.col.status" aria-label="Status"></th>
+                    <th scope="col" class="th-sort-cell"><button type="button" class="th-sort" data-sort="name"><span data-i18n="containers.col.name">Nome</span><span class="sort-ind"></span></button></th>
+                    <th scope="col" class="th-sort-cell"><button type="button" class="th-sort" data-sort="image"><span data-i18n="containers.col.image">Imagem</span><span class="sort-ind"></span></button></th>
+                    <th scope="col" class="th-sort-cell"><button type="button" class="th-sort" data-sort="state"><span data-i18n="containers.col.state">Estado</span><span class="sort-ind"></span></button></th>
+                    <th scope="col" class="th-sort-cell"><button type="button" class="th-sort" data-sort="health"><span data-i18n="containers.col.health">Health</span><span class="sort-ind"></span></button></th>
+                    <th scope="col" class="th-sort-cell"><button type="button" class="th-sort" data-sort="ports"><span data-i18n="containers.col.ports">Portas</span><span class="sort-ind"></span></button></th>
+                    <th scope="col" class="th-actions th-sort-cell"><button type="button" class="th-sort" data-sort="actions"><span data-i18n="containers.col.actions">Ações</span><span class="sort-ind"></span></button></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="view-images" class="view hidden">
+            <h1 class="page-title" data-i18n="page.images">Imagens locais</h1>
+            <div class="toolbar toolbar-wrap images-toolbar-row">
+              <button type="button" class="btn" id="refreshImages" data-i18n="images.refresh">Atualizar</button>
+            </div>
+            <p class="images-page-hint muted small" data-i18n="images.hint" data-i18n-html><strong>Apagar</strong> remove apenas a imagem (os containers permanecem).</p>
+            <div class="image-grid" id="imageGrid"></div>
+          </section>
+
+          <section id="view-admin" class="view hidden">
+            <h1 class="page-title" data-i18n="page.admin">Administrativo</h1>
+            <div class="admin-support-banner panel">
+              <div class="admin-support-inner">
+                <h2 class="admin-support-title" data-i18n="admin.support.title">💖 Apoie este projeto</h2>
+                <p class="admin-support-lead" data-i18n="admin.support.independent">Este projeto é 100% independente e open-source.</p>
+                <p class="admin-support-text" data-i18n="admin.support.keep_dev">💜 Seu apoio mantém o desenvolvimento ativo e faz o projeto continuar evoluindo.</p>
+                <p class="admin-support-note muted small" data-i18n="admin.support.note">Observação: o projeto foi todo criado em Python do zero.</p>
+                <a
+                  class="admin-support-donate"
+                  href="https://donate.stripe.com/3cI3cvehCfd18bxbPoco000"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-i18n-aria="admin.support.donate_aria"
+                  aria-label="Apoiar este projeto via Stripe"
+                >
+                  <span class="admin-support-donate-label" data-i18n="admin.support.donate_btn">💸 APOIAR ESTE PROJETO</span>
+                </a>
+              </div>
+            </div>
+            <p class="admin-lead muted" data-i18n="admin.lead">Conexão com o Docker, limpezas no daemon e diagnóstico.</p>
+            <div class="admin-status-strip">
+              <span id="adminPingBadge" class="admin-chip admin-chip--muted">Docker · …</span>
+              <span id="adminVerBadge" class="admin-chip">App …</span>
+            </div>
+            <div class="admin-grid">
+              <div class="panel admin-card span-2">
+                <div class="panel-h" data-i18n="admin.bookmarks.title">Dashboard · atalhos</div>
+                <p class="form-hint muted small" data-i18n="admin.bookmarks.hint">Atalhos com URL completo no tooltip.</p>
+                <label class="field dash-import-host-label">
+                  <span data-i18n="admin.bookmarks.host">Host/IP · importação por porta</span>
+                  <input type="text" id="dashImportHost" value="127.0.0.1" data-i18n-placeholder="admin.bookmarks.host_ph" placeholder="ex.: 192.168.1.10" autocomplete="off" />
+                </label>
+                <div class="admin-row-btns">
+                  <button type="button" class="btn btn-primary" id="dashAddBtn" data-i18n="admin.bookmarks.add">Adicionar atalho</button>
+                  <button type="button" class="btn" id="dashImportBtn" data-i18n="admin.bookmarks.import">Importar dos containers…</button>
+                </div>
+              </div>
+              <div class="panel admin-card">
+                <div class="panel-h" data-i18n="admin.interface.title">Interface</div>
+                <label class="field"><span data-i18n="admin.interface.name">Nome do aplicativo</span><input id="adminAppDisplayName" type="text" maxlength="80" placeholder="DashFlex" /></label>
+                <label class="field">
+                  <span><span data-i18n="admin.interface.card_scale">Tamanho dos cartões:</span> <strong id="adminDashCardScaleVal">100</strong>%</span>
+                  <input type="range" id="adminDashCardScale" min="70" max="140" step="5" value="100" />
+                </label>
+                <label class="field">
+                  <span data-i18n="admin.interface.theme">Tema visual</span>
+                  <select id="adminUiTheme">
+                    <option value="glass" data-i18n="admin.theme.dark">Escuro</option>
+                    <option value="frost" data-i18n="admin.theme.light">Claro</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span data-i18n="admin.interface.language">Idioma</span>
+                  <select id="adminUiLanguage">
+                    <option value="pt" data-i18n="admin.interface.lang_pt">Português (Brasil)</option>
+                    <option value="en" data-i18n="admin.interface.lang_en">English (US)</option>
+                  </select>
+                </label>
+                <div class="admin-row-btns">
+                  <button type="button" class="btn btn-primary" id="adminSaveInterface" data-i18n="admin.interface.save">Salvar interface</button>
+                </div>
+              </div>
+              <div class="panel admin-card">
+                <div class="panel-h" data-i18n="admin.docker.url_title">Docker · URL do motor</div>
+                <label class="field"><span data-i18n="admin.docker.url_label">URL base</span><textarea id="adminDockerUrl" rows="3" placeholder="unix:///var/run/docker.sock"></textarea></label>
+                <div class="admin-row-btns">
+                  <button type="button" class="btn" id="adminTestDocker" data-i18n="admin.docker.test">Testar conexão</button>
+                  <button type="button" class="btn btn-primary" id="adminSaveDocker" data-i18n="admin.docker.save">Salvar e aplicar</button>
+                </div>
+                <pre class="admin-result" id="adminDockerResult" hidden></pre>
+              </div>
+              <div class="panel admin-card span-2">
+                <div class="panel-h" data-i18n="admin.docker.df_title">Docker · uso de disco</div>
+                <div class="admin-row-btns"><button type="button" class="btn" id="adminRefreshDf" data-i18n="admin.docker.df_refresh">Atualizar resumo</button></div>
+                <div id="adminDfWrap" class="admin-df-wrap muted small" data-i18n="admin.docker.df_hint">Clique em &quot;Atualizar resumo&quot;.</div>
+                <details class="admin-details"><summary data-i18n="admin.docker.df_json">JSON bruto</summary><pre class="admin-info-json admin-json-tight" id="adminDfRaw">—</pre></details>
+              </div>
+              <div class="panel admin-card span-2 admin-danger-zone">
+                <div class="panel-h" data-i18n="admin.docker.prune_title">Docker · limpeza</div>
+                <p class="form-hint admin-warn-text" data-i18n="admin.docker.prune_warn">Operações irreversíveis no motor.</p>
+                <div class="admin-prune-grid">
+                  <label class="field checkbox-row"><input type="checkbox" id="adminPruneImages" /><span data-i18n="admin.docker.prune_images">Imagens órfãs</span></label>
+                  <label class="field checkbox-row"><input type="checkbox" id="adminPruneStopped" /><span data-i18n="admin.docker.prune_stopped">Containers parados</span></label>
+                  <label class="field checkbox-row"><input type="checkbox" id="adminPruneNetworks" /><span data-i18n="admin.docker.prune_networks">Redes não utilizadas</span></label>
+                </div>
+                <button type="button" class="btn btn-danger-outline" id="adminRunPrune" data-i18n="admin.docker.prune_run">Executar limpeza</button>
+                <pre class="admin-result" id="adminPruneOut" hidden></pre>
+              </div>
+              <div class="panel admin-card span-2 admin-volume-panel">
+                <h2 class="admin-volume-title" data-i18n="admin.volume.title_html" data-i18n-html>Dados do volume <span class="admin-path-tag">data/</span></h2>
+                <div class="admin-volume-toolbar">
+                  <div class="admin-volume-stat">
+                    <span class="muted small" data-i18n="admin.volume.links">Links</span>
+                    <strong id="adminLinksCount">—</strong>
+                    <button type="button" class="btn btn-danger-outline btn-sm" id="adminClearLinks" data-i18n="admin.volume.clear">Limpar</button>
+                  </div>
+                  <div class="admin-volume-stat">
+                    <span class="muted small" data-i18n="admin.volume.bookmarks">Atalhos</span>
+                    <strong id="adminDashBookmarksCount">—</strong>
+                    <button type="button" class="btn btn-danger-outline btn-sm" id="adminClearDashBookmarks" data-i18n="admin.volume.clear">Limpar</button>
+                  </div>
+                </div>
+                <table class="admin-mini-table">
+                  <thead><tr><th data-i18n="admin.volume.file">Arquivo</th><th data-i18n="admin.volume.size">Tamanho</th><th></th></tr></thead>
+                  <tbody id="adminDataFilesBody"></tbody>
+                </table>
+              </div>
+              <div class="panel admin-card span-2">
+                <div class="panel-h" data-i18n="admin.diag.title">Diagnóstico</div>
+                <div class="admin-row-btns"><button type="button" class="btn" id="adminPingHealth" data-i18n="admin.diag.health_btn" data-i18n-html>Testar <code>/api/health</code></button></div>
+                <p id="adminHealthLine" class="muted small admin-health-line"></p>
+                <pre class="admin-info-json" id="adminInfoBox">—</pre>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <dialog class="modal modal-narrow" id="dashBookmarkModal">
+      <div class="modal-head"><h2 id="dashBmModalTitle" data-i18n="dash.modal.title_default">Atalho</h2><button type="button" class="btn-close" id="dashBmClose" data-i18n-aria="dash.modal.close" aria-label="Fechar">&times;</button></div>
+      <form id="dashBmForm" class="link-form-body">
+        <input type="hidden" id="dashBmId" />
+        <div class="form-grid">
+          <label class="field"><span data-i18n="dash.modal.title_label">Título</span><input id="dashBmTitle" type="text" maxlength="120" data-i18n-placeholder="dash.modal.title_ph" placeholder="Nome no cartão" /></label>
+          <label class="field"><span data-i18n="dash.modal.url">URL</span><input id="dashBmUrl" type="text" required placeholder="https://…" /></label>
+        </div>
+        <div class="dash-bm-icon-section">
+          <p class="dash-bm-section-label" data-i18n="dash.modal.icon_section">Ícone do cartão</p>
+          <p class="form-hint muted small dash-bm-section-hint" data-i18n="dash.modal.icon_hint">Emoji, arquivo ou URL. Opcional — só altera a imagem exibida no cartão.</p>
+          <div class="form-grid">
+            <label class="field"><span data-i18n="dash.modal.emoji">Emoji</span><input id="dashBmIcon" type="text" maxlength="16" value="🔗" /></label>
+            <label class="field"><span data-i18n="dash.modal.upload">Enviar imagem</span><input id="dashBmIconFile" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" /></label>
+            <label class="field"><span data-i18n="dash.modal.icon_url">URL da imagem</span><input id="dashBmIconUrl" type="url" placeholder="https://…/favicon.png" /></label>
+          </div>
+          <div id="dashBmIconPreview" class="dash-bm-icon-preview"></div>
+          <button type="button" class="btn btn-sm hidden" id="dashBmRemoveIconBtn" data-i18n="dash.modal.remove_icon">Remover imagem do cartão</button>
+        </div>
+        <div class="link-form-actions">
+          <button type="button" class="btn btn-danger-outline hidden" id="dashBmDelete" disabled data-i18n="dash.modal.delete">Excluir atalho</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn" id="dashBmCancelBtn" data-i18n="dash.modal.cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="dashBmSaveBtn" data-i18n="dash.modal.save">Salvar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal modal-wide" id="dashImportModal">
+      <div class="modal-head"><h2 data-i18n="dash.import.title">Importar atalhos</h2><button type="button" class="btn-close" id="dashImportClose" data-i18n-aria="dash.modal.close" aria-label="Fechar">&times;</button></div>
+      <div class="link-form-body dash-import-body">
+        <label class="dash-import-opt"><input type="checkbox" id="dashImportIncludeStopped" /> <span data-i18n="dash.import.include_stopped">Incluir parados</span></label>
+        <div id="dashImportStatus" class="dash-import-status muted"></div>
+        <div class="dash-import-toolbar">
+          <button type="button" class="btn" id="dashImportSelectAll" data-i18n="dash.import.select_http">Marcar com http(s)</button>
+          <button type="button" class="btn" id="dashImportSelectNone" data-i18n="dash.import.select_none">Desmarcar todos</button>
+          <button type="button" class="btn" id="dashImportSelectSuggested" data-i18n="dash.import.select_suggested">Só sugeridos</button>
+        </div>
+        <div class="dash-import-scroll">
+          <table class="dash-import-table">
+            <thead><tr><th class="th-cb"></th><th data-i18n="dash.import.col.container">Container</th><th data-i18n="dash.import.col.url">URL</th><th data-i18n="dash.import.col.source">Origem</th></tr></thead>
+            <tbody id="dashImportTbody"></tbody>
+          </table>
+        </div>
+        <div class="link-form-actions">
+          <span id="dashImportSummary" class="muted small"></span>
+          <span class="spacer"></span>
+          <button type="button" class="btn" id="dashImportCancelBtn" data-i18n="dash.import.close">Fechar</button>
+          <button type="button" class="btn btn-primary" id="dashImportSubmitBtn" data-i18n="dash.import.submit">Importar selecionados</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="logsModal">
+      <div class="modal-head"><h2 id="logsTitle" data-i18n="logs.modal.title">Logs</h2><button type="button" class="btn-close" id="logsClose" data-i18n-aria="logs.modal.close" aria-label="Fechar">&times;</button></div>
+      <pre class="logs-pre" id="logsBody"></pre>
+    </dialog>
+
+    <script src="/static/js/i18n.js" defer></script>
+    <script src="/static/js/app.js" defer></script>
+  </body>
+</html>

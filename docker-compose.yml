@@ -1,0 +1,12 @@
+services:
+  dashflex:
+    image: ghcr.io/dflexy/dashflex:latest
+    ports:
+      - "8787:8787"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dashflex_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  dashflex_data:
