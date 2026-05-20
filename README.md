@@ -14,13 +14,18 @@
 </div>
 
 ---
+<img width="1151" height="580" alt="image" src="https://github.com/user-attachments/assets/8ef8ddd6-5eb0-4623-91a3-1d2bf9a537d3" />
+
+<img width="1160" height="678" alt="image" src="https://github.com/user-attachments/assets/077e706c-69e6-4f18-8ce5-3f7fbdafa495" />
+
+<img width="1149" height="686" alt="image" src="https://github.com/user-attachments/assets/b045809c-c1f0-44f0-80c6-44f6976632b6" />
+
 
 # DashFlex
-
-Repositório: [github.com/DFlexy/dashflex](https://github.com/DFlexy/dashflex)
-
-Painel web **open-source** para gerir Docker: dashboard com atalhos, visão geral de métricas, containers, imagens e painel administrativo. Desenvolvido **100% em Python** (FastAPI + API Docker).
-Interface em **Português (BR)** e **English (US)**.
+- Painel web **open-source** para gerir Docker:
+- Dashboard com atalhos, visão geral de métricas, containers, imagens e painel administrativo.
+- Desenvolvido **100% em Python** (FastAPI + API Docker).
+- Interface em **Português (BR)** e **English (US)**.
 
 ## Requisitos
 
@@ -55,30 +60,6 @@ Abra [http://localhost:8787](http://localhost:8787).
 ```bash
 docker compose up -d
 ```
-
-### GitHub Actions (publicação automática)
-
-Igual ao [dfindexer](https://github.com/DFlexy/dfindexer): push na `main` publica **`ghcr.io/dflexy/dashflex:latest`** (amd64 + arm64).
-
-#### Se der `permission_denied: write_package`
-
-O [dfindexer](https://github.com/DFlexy/dfindexer) usa o mesmo fluxo na conta **DFlexy**. Compare as configurações **dos dois repositórios**:
-
-**A) Permissões do workflow (dashflex)**  
-[github.com/DFlexy/dashflex/settings/actions](https://github.com/DFlexy/dashflex/settings/actions)
-
-- **Workflow permissions** → **Read and write permissions** → **Save**  
-- (Não deixe em “Read repository contents permission only”.)
-
-**B) Acesso do pacote GHCR (se o pacote `dashflex` já existir)**  
-[github.com/users/DFlexy/packages/container/dashflex/settings](https://github.com/users/DFlexy/packages/container/dashflex/settings)
-
-- **Manage Actions access** → **Add Repository** → `DFlexy/dashflex` → role **Write** → **Add**
-
-Compare com o pacote do dfindexer:  
-[github.com/users/DFlexy/packages/container/dfindexer/settings](https://github.com/users/DFlexy/packages/container/dfindexer/settings)
-
-Depois do primeiro push OK: **Packages → dashflex → Public**.
 
 ## Licença
 
