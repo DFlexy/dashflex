@@ -24,10 +24,13 @@
 # DashFlex
 
 Repositório: [github.com/DFlexy/dashflex](https://github.com/DFlexy/dashflex)
-
-Painel web **open-source** para gerir Docker: 
+<a></a>
+Painel web **open-source** para gerir Docker:
+<a></a>
 Dashboard com atalhos, visão geral de métricas, containers, imagens e painel administrativo.
+<a></a>
 Desenvolvido **100% em Python** (FastAPI + API Docker).
+<a></a>
 Interface em **Português (BR)** e **English (US)**.
 
 ## Requisitos
