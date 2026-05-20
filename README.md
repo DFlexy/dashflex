@@ -14,12 +14,20 @@
 </div>
 
 ---
+<img width="1151" height="580" alt="image" src="https://github.com/user-attachments/assets/8ef8ddd6-5eb0-4623-91a3-1d2bf9a537d3" />
+
+<img width="1160" height="678" alt="image" src="https://github.com/user-attachments/assets/077e706c-69e6-4f18-8ce5-3f7fbdafa495" />
+
+<img width="1149" height="686" alt="image" src="https://github.com/user-attachments/assets/b045809c-c1f0-44f0-80c6-44f6976632b6" />
+
 
 # DashFlex
 
 Repositório: [github.com/DFlexy/dashflex](https://github.com/DFlexy/dashflex)
 
-Painel web **open-source** para gerir Docker: dashboard com atalhos, visão geral de métricas, containers, imagens e painel administrativo. Desenvolvido **100% em Python** (FastAPI + API Docker).
+Painel web **open-source** para gerir Docker: 
+Dashboard com atalhos, visão geral de métricas, containers, imagens e painel administrativo.
+Desenvolvido **100% em Python** (FastAPI + API Docker).
 Interface em **Português (BR)** e **English (US)**.
 
 ## Requisitos
