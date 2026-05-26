@@ -2638,6 +2638,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     await adminLoadDf();
     maybeRefreshOverview();
+    if (!$("#view-images")?.classList.contains("hidden")) loadImages();
   });
 
   $("#adminPingHealth")?.addEventListener("click", async () => {

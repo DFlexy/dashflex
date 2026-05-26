@@ -387,12 +387,13 @@ class DockerSvc:
         except DockerException:
             return {}
 
-    def prune_dangling_images(self) -> dict[str, Any]:
+    def prune_unused_images(self) -> dict[str, Any]:
+        """Remove imagens não referenciadas por nenhum container (equiv. docker image prune -a)."""
         try:
-            out = self.client.images.prune(filters={"dangling": True})
+            out = self.client.images.prune(filters={"dangling": False})
             return dict(out) if isinstance(out, dict) else {"raw": out}
         except DockerException:
-            logger.exception("prune_dangling_images")
+            logger.exception("prune_unused_images")
             raise
 
     def prune_stopped_containers(self) -> dict[str, Any]:

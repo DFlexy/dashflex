@@ -743,19 +743,19 @@ def admin_docker_prune(body: DockerPruneBody) -> dict[str, Any]:
     results: dict[str, Any] = {}
     errors: list[dict[str, str]] = []
 
-    if body.dangling_images:
-        try:
-            results["dangling_images"] = d.prune_dangling_images()
-        except Exception as e:
-            logger.exception("admin prune images")
-            errors.append({"step": "dangling_images", "error": str(e)})
-
     if body.stopped_containers:
         try:
             results["stopped_containers"] = d.prune_stopped_containers()
         except Exception as e:
             logger.exception("admin prune containers")
             errors.append({"step": "stopped_containers", "error": str(e)})
+
+    if body.dangling_images:
+        try:
+            results["unused_images"] = d.prune_unused_images()
+        except Exception as e:
+            logger.exception("admin prune images")
+            errors.append({"step": "unused_images", "error": str(e)})
 
     if body.unused_networks:
         try:
