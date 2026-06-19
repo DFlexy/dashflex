@@ -253,25 +253,36 @@ function formatImageSizeMb(v) {
 }
 
 /** Toque no SVG interno nem sempre dispara click no celular; touchend + dedupe com click. */
-function wireImageRemoveButton(btn, ref, labelFn) {
-  let lastTouchRm = 0;
-  const run = () => {
-    void removeDockerImage(ref, labelFn());
+function wireTapClick(btn, handler, opts = {}) {
+  if (!btn) return;
+  const stopProp = !!opts.stopPropagation;
+  let lastTouch = 0;
+  const run = (ev) => {
+    ev?.preventDefault?.();
+    if (stopProp) ev?.stopPropagation?.();
+    handler(ev);
   };
   btn.addEventListener(
     "touchend",
     (e) => {
-      if (!btn.dataset.imageRef) return;
       e.preventDefault();
-      lastTouchRm = Date.now();
-      run();
+      if (stopProp) e.stopPropagation();
+      lastTouch = Date.now();
+      run(e);
     },
-    { passive: false }
+    { passive: false },
   );
   btn.addEventListener("click", (e) => {
     e.preventDefault();
-    if (Date.now() - lastTouchRm < 500) return;
-    run();
+    if (stopProp) e.stopPropagation();
+    if (Date.now() - lastTouch < 500) return;
+    run(e);
+  });
+}
+
+function wireImageRemoveButton(btn, ref, labelFn) {
+  wireTapClick(btn, () => {
+    void removeDockerImage(ref, labelFn());
   });
 }
 
@@ -1694,26 +1705,13 @@ function containerLogTargetId(bookmark, containers) {
 }
 
 function wireDashLogButton(btn, containerId, title) {
-  let lastTouch = 0;
-  const run = () => {
-    void showLogsLive(containerId, title);
-  };
-  btn.addEventListener(
-    "touchend",
-    (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      lastTouch = Date.now();
-      run();
+  wireTapClick(
+    btn,
+    () => {
+      void showLogsLive(containerId, title);
     },
-    { passive: false },
+    { stopPropagation: true },
   );
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (Date.now() - lastTouch < 450) return;
-    run();
-  });
 }
 
 function resolveContainerForBookmark(bookmark, containers) {
@@ -2039,18 +2037,14 @@ async function removeDockerImage(ref, displayLabel) {
     return;
   }
   if (dockerImageRemoveBusy) return;
+  // confirm precisa rodar no mesmo turno do toque/clique; setTimeout quebra no celular.
+  if (
+    !window.confirm(t("images.confirm.delete", { label: displayLabel }))
+  ) {
+    return;
+  }
   dockerImageRemoveBusy = true;
   try {
-    const ok = await new Promise((resolve) => {
-      window.setTimeout(() => {
-        resolve(
-          window.confirm(
-            t("images.confirm.delete", { label: displayLabel })
-          )
-        );
-      }, 0);
-    });
-    if (!ok) return;
     const params = new URLSearchParams();
     params.set("ref", ref);
     params.set("force", "true");
@@ -2437,7 +2431,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#dashBmIconUrl")?.addEventListener("input", () => {
     if (!$("#dashBmIconFile")?.files?.[0]) renderDashBmPreview();
   });
-  $("#dashBmRemoveIconBtn")?.addEventListener("click", () => {
+  wireTapClick($("#dashBmRemoveIconBtn"), () => {
     dashBmRemoveIconOnSave = true;
     syncDashBmRemoveIconBtn();
     renderDashBmPreview();

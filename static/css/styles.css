@@ -1135,6 +1135,7 @@ body {
 
 .btn-compact svg {
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .btn-text-after {
