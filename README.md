@@ -1,3 +1,16 @@
+<div align="center">
+# 💖 Apoie este projeto
+
+**Este projeto é 100% independente e open-source.**  
+💜 Seu apoio mantém o desenvolvimento ativo e faz o projeto continuar evoluindo.
+
+** Observação o projeto foi todo criado em python do zero
+
+<a href="https://donate.stripe.com/3cI3cvehCfd18bxbPoco000" target="_blank">
+  <img src="https://img.shields.io/badge/💸%20APOIAR%20ESTE%20PROJETO-00C851?style=for-the-badge" width="500" />
+</a>
+</div>
+
 # DashFlex
 
 Painel web open-source para gerir Docker. Feito em Python (FastAPI + API Docker)
