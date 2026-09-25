@@ -55,9 +55,9 @@ const UI_PATTERNS = new Set([
   "spark",
   "cross",
 ]);
-const DEFAULT_UI_PRIMARY = "blue";
+const DEFAULT_UI_PRIMARY = "black";
 const DEFAULT_CUSTOM_HEX = "#2dd4bf";
-const DEFAULT_UI_PATTERN = "grid";
+const DEFAULT_UI_PATTERN = "diagonal";
 
 let uiPrimary = DEFAULT_UI_PRIMARY;
 let uiPrimaryHex = DEFAULT_CUSTOM_HEX;
@@ -1167,10 +1167,14 @@ async function openLogsModal(id, title, { live = false } = {}) {
     body.textContent = "";
     const reader = r.body.getReader();
     const dec = new TextDecoder();
+    const logCap = 120000;
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
       body.textContent += dec.decode(value, { stream: true });
+      if (body.textContent.length > logCap) {
+        body.textContent = body.textContent.slice(-logCap);
+      }
       body.scrollTop = body.scrollHeight;
     }
   } catch (e) {

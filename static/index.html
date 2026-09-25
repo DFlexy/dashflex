@@ -28,10 +28,10 @@
           grid: 1, dots: 1, diagonal: 1, circuit: 1, hex: 1,
           binary: 1, stripes: 1, honeycomb: 1, spark: 1, cross: 1,
         };
-        var id = localStorage.getItem("dashflex_ui_primary") || "blue";
-        if (!accents[id] && id !== "custom") id = "blue";
+        var id = localStorage.getItem("dashflex_ui_primary") || "black";
+        if (!accents[id] && id !== "custom") id = "black";
         var hex = id === "custom" ? localStorage.getItem("dashflex_ui_primary_hex") || "#2dd4bf" : accents[id];
-        if (!/^#[0-9a-fA-F]{6}$/.test(hex || "")) hex = "#2f80ff";
+        if (!/^#[0-9a-fA-F]{6}$/.test(hex || "")) hex = "#000000";
         var root = document.documentElement;
         var n = parseInt(hex.slice(1), 16);
         var r = (n >> 16) & 255;
@@ -51,8 +51,8 @@
         root.style.setProperty("--accent-rgb", r + ", " + g + ", " + b);
         root.style.setProperty("--accent", hex);
         root.style.setProperty("--on-accent", y > 160 ? "#06140e" : "#ffffff");
-        var pat = localStorage.getItem("dashflex_ui_pattern") || "grid";
-        root.dataset.pattern = patterns[pat] ? pat : "grid";
+        var pat = localStorage.getItem("dashflex_ui_pattern") || "diagonal";
+        root.dataset.pattern = patterns[pat] ? pat : "diagonal";
       })();
       (function () {
         var k = "dashflex_ui_language";
@@ -71,7 +71,7 @@
         document.documentElement.dataset.locale = lang;
       })();
     </script>
-    <link rel="stylesheet" href="/static/css/styles.css?v=20" />
+    <link rel="stylesheet" href="/static/css/styles.css?v=26" />
   </head>
   <body>
     <div class="layout">
@@ -366,9 +366,12 @@
     </dialog>
 
     <div class="theme-switcher" id="themeSwitcher">
-      <button type="button" class="theme-switcher__toggle" id="themeSwitcherToggle" aria-expanded="false" aria-controls="themeSwitcherPanel" data-i18n-aria="switcher.open" aria-label="Temas">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42m12.72-12.72 1.42-1.42"/></svg>
-      </button>
+      <div class="theme-switcher__bar">
+        <button type="button" class="theme-switcher__toggle" id="themeSwitcherToggle" aria-expanded="false" aria-controls="themeSwitcherPanel" data-i18n-aria="switcher.open" aria-label="Temas">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42m12.72-12.72 1.42-1.42"/></svg>
+        </button>
+        <a class="support-btn" href="https://donate.stripe.com/3cI3cvehCfd18bxbPoco000" target="_blank" rel="noopener noreferrer" data-i18n="header.support" data-i18n-aria="header.support_aria">Apoiar projeto</a>
+      </div>
       <div class="theme-switcher__panel" id="themeSwitcherPanel" hidden>
         <div class="theme-switcher__tabs" role="tablist">
           <button type="button" class="theme-switcher__tab" id="themeTabStyles" role="tab" aria-selected="false" aria-controls="themePageStyles" data-theme-tab="styles" data-i18n="switcher.styles">Estilos do tema</button>
@@ -383,19 +386,19 @@
         <div class="theme-switcher__page" id="themePageColors" data-theme-page="colors" role="tabpanel">
           <p class="theme-colors__label" data-i18n="admin.theme.primary">Cor primária</p>
           <div class="theme-swatches" id="themeSwatches">
+            <button type="button" class="theme-swatch" data-accent="black" data-i18n-aria="admin.theme.swatch.black" aria-label="Preto"></button>
             <button type="button" class="theme-swatch" data-accent="blue" data-i18n-aria="admin.theme.swatch.blue" aria-label="Azul"></button>
             <button type="button" class="theme-swatch" data-accent="purple" data-i18n-aria="admin.theme.swatch.purple" aria-label="Roxo"></button>
             <button type="button" class="theme-swatch" data-accent="darkgreen" data-i18n-aria="admin.theme.swatch.darkgreen" aria-label="Verde escuro"></button>
-            <button type="button" class="theme-swatch" data-accent="black" data-i18n-aria="admin.theme.swatch.black" aria-label="Preto"></button>
             <label class="theme-swatch theme-swatch--custom" data-accent="custom">
               <input type="color" id="themeCustomColor" value="#2dd4bf" data-i18n-aria="admin.theme.swatch.custom" aria-label="Cor personalizada" />
             </label>
           </div>
           <p class="theme-colors__label" data-i18n="admin.theme.patterns">Padrões de fundo</p>
           <div class="theme-patterns" id="themePatterns">
+            <button type="button" class="theme-pattern" data-pattern="diagonal" data-i18n-aria="admin.theme.pattern.diagonal" aria-label="Diagonal"></button>
             <button type="button" class="theme-pattern" data-pattern="grid" data-i18n-aria="admin.theme.pattern.grid" aria-label="Grade"></button>
             <button type="button" class="theme-pattern" data-pattern="dots" data-i18n-aria="admin.theme.pattern.dots" aria-label="Pontos"></button>
-            <button type="button" class="theme-pattern" data-pattern="diagonal" data-i18n-aria="admin.theme.pattern.diagonal" aria-label="Diagonal"></button>
             <button type="button" class="theme-pattern" data-pattern="circuit" data-i18n-aria="admin.theme.pattern.circuit" aria-label="Circuito"></button>
             <button type="button" class="theme-pattern" data-pattern="hex" data-i18n-aria="admin.theme.pattern.hex" aria-label="Hexágonos"></button>
             <button type="button" class="theme-pattern" data-pattern="binary" data-i18n-aria="admin.theme.pattern.binary" aria-label="Binário"></button>
@@ -408,7 +411,7 @@
       </div>
     </div>
 
-    <script src="/static/js/i18n.js?v=20" defer></script>
-    <script src="/static/js/app.js?v=20" defer></script>
+    <script src="/static/js/i18n.js?v=26" defer></script>
+    <script src="/static/js/app.js?v=26" defer></script>
   </body>
 </html>

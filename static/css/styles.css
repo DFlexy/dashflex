@@ -8,8 +8,8 @@
   --logo-size: 32px;
   --content-max: 1440px;
 
-  --accent-rgb: 0, 255, 190;
-  --accent: #00ffbe;
+  --accent-rgb: 230, 230, 230;
+  --accent: #e6e6e6;
   --on-accent: #06140e;
   --accent-hover: color-mix(in srgb, var(--accent) 78%, white);
   --accent-muted: rgba(var(--accent-rgb), 0.14);
@@ -67,7 +67,7 @@
   --pattern-honeycomb: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='32' fill='none' stroke='%2394a3b8' stroke-width='1'%3E%3Cpath d='M18 1L33 9.5V26.5L18 35L3 26.5V9.5Z'/%3E%3Cpath d='M18 8L27 13V23L18 28L9 23V13Z'/%3E%3C/svg%3E");
   --pattern-spark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M28 22v12M22 28h12' stroke='%2394a3b8' stroke-width='1'/%3E%3Ccircle cx='10' cy='12' r='1' fill='%2394a3b8'/%3E%3Ccircle cx='46' cy='40' r='1' fill='%2394a3b8'/%3E%3C/svg%3E");
   --pattern-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='none' stroke='%2394a3b8' stroke-width='1'%3E%3Cpath d='M0 16H32M16 0V32'/%3E%3C/svg%3E");
-  --bg-pattern: var(--pattern-grid);
+  --bg-pattern: var(--pattern-diagonal);
 }
 
 html {
@@ -151,7 +151,7 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 10;
-  padding-right: 2.85rem;
+  padding-right: 11.5rem;
 }
 
 .site-header__brand {
@@ -2658,7 +2658,7 @@ pre code {
     flex-wrap: wrap;
     height: auto;
     min-height: var(--header-h);
-    padding: 0.5rem 2.85rem 0.5rem 0.75rem;
+    padding: 0.5rem 11.5rem 0.5rem 0.75rem;
     gap: 0.5rem;
   }
 
@@ -3100,6 +3100,57 @@ html:not([data-theme="paper"]) .nav-btn.active {
   box-shadow: inset 0 0 12px rgba(var(--accent-rgb), 0.2);
 }
 
+html:not([data-theme="paper"]) #view-containers .table-wrap {
+  position: relative;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, #101a2e) 0%, #080c16 100%);
+  border: 1px solid rgba(var(--accent-rgb), 0.34);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 22px rgba(var(--accent-rgb), 0.12);
+}
+
+html:not([data-theme="paper"]) #view-containers .table-wrap::before,
+html:not([data-theme="paper"]) #view-containers .table-wrap::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: color-mix(in srgb, var(--accent) 55%, white);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 6;
+}
+
+html:not([data-theme="paper"]) #view-containers .table-wrap::before {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+}
+
+html:not([data-theme="paper"]) #view-containers .table-wrap::after {
+  right: 0;
+  bottom: 0;
+  border-width: 0 2px 2px 0;
+}
+
+html:not([data-theme="paper"]) .data-table th {
+  background: rgba(var(--accent-rgb), 0.1);
+  color: color-mix(in srgb, var(--accent) 30%, var(--text));
+  border-bottom-color: rgba(var(--accent-rgb), 0.28);
+}
+
+html:not([data-theme="paper"]) .data-table td {
+  border-bottom-color: rgba(var(--accent-rgb), 0.16);
+}
+
+html:not([data-theme="paper"]) .toolbar-filter {
+  border-color: rgba(var(--accent-rgb), 0.34);
+}
+
+html:not([data-theme="paper"]) .toolbar-filter:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 55%, white);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.22);
+}
+
 /* ── Theme: Paper (claro, estilo painel administrativo) ─────── */
 
 [data-theme="paper"] {
@@ -3259,6 +3310,51 @@ html:not([data-theme="paper"]) .nav-btn.active {
   flex-direction: column;
   align-items: flex-end;
   gap: 0.35rem;
+}
+
+.theme-switcher__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.support-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 1.7rem;
+  padding: 0 0.7rem;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  border: 1px solid rgba(var(--accent-rgb), 0.55);
+  border-radius: 2px;
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.25);
+  animation: apoiar-pulso 1.15s ease-in-out infinite;
+}
+
+.support-btn:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+@keyframes apoiar-pulso {
+  0%,
+  100% {
+    background: transparent;
+    color: var(--text);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.2);
+    border-color: rgba(var(--accent-rgb), 0.55);
+  }
+  50% {
+    background: var(--accent);
+    color: var(--on-accent);
+    box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.85);
+    border-color: color-mix(in srgb, var(--accent) 40%, white);
+  }
 }
 
 .theme-switcher__toggle {

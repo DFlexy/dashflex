@@ -29,7 +29,7 @@ def load_links() -> dict[str, dict[str, Any]]:
         return {}
 
     if _links_cache is not None and _links_mtime == mtime:
-        return _links_cache
+        return _copy_links(_links_cache)
 
     try:
         with DATA_FILE.open(encoding="utf-8") as f:
@@ -37,7 +37,7 @@ def load_links() -> dict[str, dict[str, Any]]:
     except (json.JSONDecodeError, OSError):
         _links_cache = {}
         _links_mtime = mtime
-        return _links_cache
+        return _copy_links(_links_cache)
 
     parsed: dict[str, dict[str, Any]]
     if isinstance(raw, dict) and "links" in raw:
@@ -50,7 +50,11 @@ def load_links() -> dict[str, dict[str, Any]]:
 
     _links_cache = parsed
     _links_mtime = mtime
-    return _links_cache
+    return _copy_links(_links_cache)
+
+
+def _copy_links(store: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    return {k: dict(v) if isinstance(v, dict) else v for k, v in store.items()}
 
 def _save_links(store: dict[str, dict[str, Any]]) -> None:
     _ensure_dir()

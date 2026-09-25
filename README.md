@@ -13,7 +13,8 @@ Com interface em **Português (Brasil)** e **English (US)**.
 
 <img width="1280" height="927" alt="image" src="https://github.com/user-attachments/assets/f625ed48-229b-4037-a961-5f290e095952" />
 
-<img width="1263" height="896" alt="image" src="https://github.com/user-attachments/assets/2e22c459-eccc-4843-96b7-1a3b5b9944de" />
+<img width="1263" height="893" alt="image" src="https://github.com/user-attachments/assets/79eff659-0fe0-466c-836c-3502baf047ac" />
+
 
 
 ## Requisitos

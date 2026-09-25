@@ -24,9 +24,9 @@ DEFAULTS: dict[str, Any] = {
     "app_display_name": "DashFlex",
     "dash_bookmark_card_scale_percent": 100,
     "ui_theme": "scifi",
-    "ui_primary": "blue",
+    "ui_primary": "black",
     "ui_primary_hex": "#2dd4bf",
-    "ui_pattern": "grid",
+    "ui_pattern": "diagonal",
     "ui_language": "",
 }
 
@@ -36,6 +36,14 @@ _settings_mtime: float | None = None
 
 def _ensure_dir() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _as_int(value: Any, default: int, lo: int, hi: int) -> int:
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return default
+    return min(hi, max(lo, n))
 
 
 def _normalize_theme_fields(out: dict[str, Any]) -> None:
@@ -50,6 +58,23 @@ def _normalize_theme_fields(out: dict[str, Any]) -> None:
     out["ui_primary_hex"] = hx.lower() if _HEX_COLOR.match(hx) else DEFAULTS["ui_primary_hex"]
     if out.get("ui_pattern") not in UI_PATTERNS:
         out["ui_pattern"] = DEFAULTS["ui_pattern"]
+    out["dashboard_refresh_seconds"] = _as_int(out.get("dashboard_refresh_seconds"), 12, 5, 600)
+    out["dash_bookmark_card_scale_percent"] = _as_int(
+        out.get("dash_bookmark_card_scale_percent"), 100, 70, 140
+    )
+    flag = out.get("containers_show_stopped_default")
+    if isinstance(flag, str):
+        out["containers_show_stopped_default"] = flag.strip().lower() in {"1", "true", "yes", "on"}
+    elif flag is None:
+        out["containers_show_stopped_default"] = True
+    else:
+        out["containers_show_stopped_default"] = bool(flag)
+    name = str(out.get("app_display_name") or "").strip()
+    out["app_display_name"] = (name[:80] or DEFAULTS["app_display_name"])
+    lang = str(out.get("ui_language") or "").strip().lower()
+    out["ui_language"] = lang if lang in {"pt", "en"} else ""
+    raw_url = out.get("docker_base_url")
+    out["docker_base_url"] = raw_url.strip() if isinstance(raw_url, str) else ""
 
 
 def _invalidate_settings_cache() -> None:

@@ -25,6 +25,6 @@ RUN mkdir -p /app/data
 EXPOSE 8787
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import sys, urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8787/api/health', timeout=4); sys.exit(0 if r.status == 200 else 1)"
+    CMD python -c "import os,sys,urllib.request; p=os.environ.get('PORT','8787'); r=urllib.request.urlopen('http://127.0.0.1:%s/api/health'%p, timeout=4); sys.exit(0 if r.status==200 else 1)"
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8787", "--no-access-log"]
+CMD ["sh", "-c", "exec python -B -m uvicorn app.main:app --host \"${HOST:-0.0.0.0}\" --port \"${PORT:-8787}\" --no-access-log"]

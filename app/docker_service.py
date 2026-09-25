@@ -6,7 +6,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Iterator
 
 import docker
 from docker.errors import DockerException, ImageNotFound, NotFound
@@ -463,13 +463,22 @@ class DockerSvc:
 
     def logs_stream(self, container_id: str, *, tail: int = 200) -> Iterator[str]:
         c = self.client.containers.get(container_id)
-        for chunk in c.logs(tail=tail, follow=True, timestamps=True, stream=True):
-            if isinstance(chunk, bytes):
-                text = chunk.decode("utf-8", errors="replace")
-            else:
-                text = str(chunk)
-            if text:
-                yield text
+        stream = c.logs(tail=tail, follow=True, timestamps=True, stream=True)
+        try:
+            for chunk in stream:
+                if isinstance(chunk, bytes):
+                    text = chunk.decode("utf-8", errors="replace")
+                else:
+                    text = str(chunk)
+                if text:
+                    yield text
+        finally:
+            close = getattr(stream, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception:
+                    logger.debug("logs_stream close", exc_info=True)
 
     def inspect(self, container_id: str) -> dict[str, Any]:
         c = self.client.containers.get(container_id)

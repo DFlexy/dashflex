@@ -6,9 +6,9 @@ import re
 import sys
 from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator, Literal
+from typing import Any, Literal
 
 import docker as docker_mod
 from docker.errors import ImageNotFound
@@ -364,7 +364,11 @@ def dashboard() -> dict[str, Any]:
     fk = _IO_POOL.submit(_dashboard_kpis, d)
     fh = _IO_POOL.submit(host_snapshot)
     ft = _IO_POOL.submit(lambda: d.top_container_stats(10, cpu_retry=False))
-    kpis = fk.result()
+    try:
+        kpis = fk.result()
+    except Exception:
+        logger.exception("_dashboard_kpis")
+        raise HTTPException(503, "Docker indisponível") from None
     try:
         host = fh.result()
     except Exception:
@@ -427,8 +431,13 @@ def overview_live() -> dict[str, Any]:
     fk = _IO_POOL.submit(_dashboard_kpis, d)
     ft = _IO_POOL.submit(_top)
     fh = _IO_POOL.submit(_host_live)
+    try:
+        kpis = fk.result()
+    except Exception:
+        logger.exception("_dashboard_kpis live")
+        raise HTTPException(503, "Docker indisponível") from None
     return {
-        "kpis": fk.result(),
+        "kpis": kpis,
         "top_cpu": ft.result(),
         "host": fh.result(),
     }
@@ -871,7 +880,7 @@ def root() -> FileResponse:
     idx = STATIC / "index.html"
     if not idx.exists():
         raise HTTPException(500, "UI estática não encontrada")
-    return FileResponse(idx)
+    return FileResponse(idx, headers={"Cache-Control": "no-cache"})
 
 app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
