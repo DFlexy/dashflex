@@ -1,6 +1,7 @@
 # DashFlex
 
-Painel web open-source para gerir Docker. Feito em Python (FastAPI + API Docker), com interface em **Português (Brasil)** e **English (US)**.
+Painel web open-source para gerir Docker. Feito em Python (FastAPI + API Docker)
+Com interface em **Português (Brasil)** e **English (US)**.
 
 - **Dashboard** com atalhos dos containers (abrir, editar, logs) e tamanho dos cartões ajustável
 - **Visão geral** de CPU, memória, rede e do host
@@ -8,11 +9,12 @@ Painel web open-source para gerir Docker. Feito em Python (FastAPI + API Docker)
 - **Administrativo** para URL do Docker, limpeza, nome do app e idioma
 - **Tema** SciFi (escuro) ou Paper (claro), cor primária e padrões de fundo
 
-<img width="1151" height="580" alt="Dashboard do DashFlex" src="https://github.com/user-attachments/assets/8ef8ddd6-5eb0-4623-91a3-1d2bf9a537d3" />
+<img width="1264" height="901" alt="image" src="https://github.com/user-attachments/assets/8031a1fc-1285-4473-8479-0b006d089a49" />
 
-<img width="1160" height="678" alt="Visão geral do DashFlex" src="https://github.com/user-attachments/assets/077e706c-69e6-4f18-8ce5-3f7fbdafa495" />
+<img width="1280" height="927" alt="image" src="https://github.com/user-attachments/assets/f625ed48-229b-4037-a961-5f290e095952" />
 
-<img width="1149" height="686" alt="Painel administrativo do DashFlex" src="https://github.com/user-attachments/assets/b045809c-c1f0-44f0-80c6-44f6976632b6" />
+<img width="1263" height="896" alt="image" src="https://github.com/user-attachments/assets/2e22c459-eccc-4843-96b7-1a3b5b9944de" />
+
 
 ## Requisitos
 
