@@ -1,19 +1,32 @@
+# Docker (nao entram na imagem)
+docker/
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Git
 .git
 .gitignore
 .github
 .cursor
+
+# Python
 venv
 .venv
 __pycache__
 *.py[cod]
 .pytest_cache
 .mypy_cache
+*.egg-info
+dist
+build
+
+# Dados e export local
+data/
 *.tar
 *.tar.gz
-dist
 scripts
 .env
 .env.*
-data/*.json
 README.md
 LICENSE

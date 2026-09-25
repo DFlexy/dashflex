@@ -14,6 +14,10 @@ const IC = {
 };
 
 let lastContainers = [];
+let containerFilterText = "";
+
+let lastImages = [];
+let imageFilterText = "";
 
 let containerSort = { key: "name", dir: "asc" };
 
@@ -26,34 +30,207 @@ const MAX_DASH_BOOKMARKS = 48;
 const DEFAULT_APP_DISPLAY_NAME = "DashFlex";
 const t = (key, params) => window.DashFlexI18n.t(key, params);
 
-const UI_THEMES = new Set(["glass", "frost"]);
-const DEFAULT_UI_THEME = "glass";
+const UI_THEMES = new Set(["scifi", "paper"]);
+const DEFAULT_UI_THEME = "scifi";
 const UI_THEME_STORAGE_KEY = "dashflex_ui_theme";
+const UI_PRIMARY_KEY = "dashflex_ui_primary";
+const UI_PRIMARY_HEX_KEY = "dashflex_ui_primary_hex";
+const UI_PATTERN_KEY = "dashflex_ui_pattern";
+const THEME_COLOR = { scifi: "#0c0c0c", paper: "#f4f3ef" };
+const UI_ACCENTS = {
+  darkgreen: "#0a6b3c",
+  blue: "#2f80ff",
+  purple: "#8f00ff",
+  black: "#000000",
+};
+const UI_PATTERNS = new Set([
+  "grid",
+  "dots",
+  "diagonal",
+  "circuit",
+  "hex",
+  "binary",
+  "stripes",
+  "honeycomb",
+  "spark",
+  "cross",
+]);
+const DEFAULT_UI_PRIMARY = "blue";
+const DEFAULT_CUSTOM_HEX = "#2dd4bf";
+const DEFAULT_UI_PATTERN = "grid";
+
+let uiPrimary = DEFAULT_UI_PRIMARY;
+let uiPrimaryHex = DEFAULT_CUSTOM_HEX;
+let uiPattern = DEFAULT_UI_PATTERN;
 
 function normalizeUiTheme(themeId) {
-  if (themeId === "aurora") return "frost";
+  if (themeId === "frost" || themeId === "light") return "paper";
+  if (themeId === "athanor" || themeId === "glass" || themeId === "dark" || themeId === "aurora") return "scifi";
   return UI_THEMES.has(themeId) ? themeId : DEFAULT_UI_THEME;
+}
+
+function normalizeHexColor(value) {
+  const raw = String(value || "").trim();
+  return /^#[0-9a-fA-F]{6}$/.test(raw) ? raw.toLowerCase() : "";
+}
+
+function accentHexFor(primaryId, customHex) {
+  if (primaryId === "custom") return normalizeHexColor(customHex) || DEFAULT_CUSTOM_HEX;
+  return UI_ACCENTS[primaryId] || UI_ACCENTS[DEFAULT_UI_PRIMARY];
+}
+
+function onAccentFor(hex) {
+  const n = parseInt(String(hex).slice(1), 16);
+  if (!Number.isFinite(n)) return "#06140e";
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const y = (r * 299 + g * 587 + b * 114) / 1000;
+  return y > 160 ? "#06140e" : "#ffffff";
+}
+
+function hexLuminance(hex) {
+  const n = parseInt(String(hex).slice(1), 16);
+  if (!Number.isFinite(n)) return 0;
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return (r * 299 + g * 587 + b * 114) / 1000;
+}
+
+/** No tema escuro, preto (e cores quase pretas) somem nas bordas e ícones. */
+function accentHexForTheme(hex) {
+  const safe = normalizeHexColor(hex) || UI_ACCENTS[DEFAULT_UI_PRIMARY];
+  const dark = document.documentElement.dataset.theme !== "paper";
+  if (dark && hexLuminance(safe) < 42) return "#e6e6e6";
+  if (!dark && hexLuminance(safe) > 214) return "#1c1c1c";
+  return safe;
+}
+
+function applyAccentVars(hex) {
+  const safe = accentHexForTheme(normalizeHexColor(hex) || UI_ACCENTS[DEFAULT_UI_PRIMARY]);
+  const n = parseInt(safe.slice(1), 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const root = document.documentElement;
+  root.style.setProperty("--accent-rgb", `${r}, ${g}, ${b}`);
+  root.style.setProperty("--accent", safe);
+  root.style.setProperty("--on-accent", onAccentFor(safe));
 }
 
 function applyUiTheme(themeId, { persistLocal = true } = {}) {
   const id = normalizeUiTheme(themeId);
   document.documentElement.dataset.theme = id;
+  const meta = document.getElementById("themeColorMeta");
+  if (meta) meta.setAttribute("content", THEME_COLOR[id] || THEME_COLOR.scifi);
   if (persistLocal) {
     try {
       localStorage.setItem(UI_THEME_STORAGE_KEY, id);
     } catch (_) {}
   }
+  applyAccentVars(accentHexFor(uiPrimary, uiPrimaryHex));
+  syncThemePickerUi();
+}
+
+function applyUiPrimary(primaryId, customHex, { persistLocal = true } = {}) {
+  const id = primaryId === "custom" || UI_ACCENTS[primaryId] ? primaryId : DEFAULT_UI_PRIMARY;
+  const hex = accentHexFor(id, customHex);
+  uiPrimary = id === "custom" ? "custom" : id;
+  if (id === "custom") uiPrimaryHex = hex;
+  document.documentElement.dataset.accent = uiPrimary;
+  applyAccentVars(hex);
+  if (persistLocal) {
+    try {
+      localStorage.setItem(UI_PRIMARY_KEY, uiPrimary);
+      if (uiPrimary === "custom") localStorage.setItem(UI_PRIMARY_HEX_KEY, hex);
+    } catch (_) {}
+  }
+  syncThemePickerUi();
+}
+
+function applyUiPattern(patternId, { persistLocal = true } = {}) {
+  const id = UI_PATTERNS.has(patternId) ? patternId : DEFAULT_UI_PATTERN;
+  uiPattern = id;
+  document.documentElement.dataset.pattern = id;
+  if (persistLocal) {
+    try {
+      localStorage.setItem(UI_PATTERN_KEY, id);
+    } catch (_) {}
+  }
+  syncThemePickerUi();
 }
 
 function applyUiThemeFromSettings(s) {
   const raw = s && typeof s.ui_theme === "string" ? s.ui_theme.trim() : "";
   applyUiTheme(raw || DEFAULT_UI_THEME);
+  const primary = s && typeof s.ui_primary === "string" ? s.ui_primary.trim() : DEFAULT_UI_PRIMARY;
+  const hex = s && typeof s.ui_primary_hex === "string" ? s.ui_primary_hex : DEFAULT_CUSTOM_HEX;
+  if (normalizeHexColor(hex)) uiPrimaryHex = normalizeHexColor(hex);
+  applyUiPrimary(primary, uiPrimaryHex);
+  const pattern = s && typeof s.ui_pattern === "string" ? s.ui_pattern.trim() : DEFAULT_UI_PATTERN;
+  applyUiPattern(pattern);
 }
 
-function syncAdminUiThemeUi(themeId) {
-  const sel = $("#adminUiTheme");
-  if (!sel) return;
-  sel.value = normalizeUiTheme(themeId);
+function syncThemePickerUi() {
+  $$("#themeSwatches .theme-swatch").forEach((el) => {
+    el.classList.toggle("is-active", el.dataset.accent === uiPrimary);
+  });
+  $$("#themePatterns .theme-pattern").forEach((el) => {
+    const on = el.dataset.pattern === uiPattern;
+    el.classList.toggle("is-active", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  const picker = $("#themeCustomColor");
+  if (picker && normalizeHexColor(uiPrimaryHex)) picker.value = uiPrimaryHex;
+  const themeId = document.documentElement.dataset.theme === "paper" ? "paper" : "scifi";
+  $$(".theme-style[data-ui-theme]").forEach((el) => {
+    const on = el.dataset.uiTheme === themeId;
+    el.classList.toggle("is-active", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+}
+
+let themePersistTimer = null;
+
+function scheduleThemePersist() {
+  clearTimeout(themePersistTimer);
+  themePersistTimer = setTimeout(() => {
+    const themeId = document.documentElement.dataset.theme === "paper" ? "paper" : "scifi";
+    void fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ui_theme: themeId,
+        ui_primary: uiPrimary,
+        ui_primary_hex: uiPrimaryHex,
+        ui_pattern: uiPattern,
+      }),
+    }).catch(() => {});
+  }, 200);
+}
+
+function setThemeSwitcherOpen(open) {
+  const panel = $("#themeSwitcherPanel");
+  const btn = $("#themeSwitcherToggle");
+  if (!panel || !btn) return;
+  panel.hidden = !open;
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+function setThemeSwitcherTab(name) {
+  $$(".theme-switcher__tab").forEach((tab) => {
+    const on = tab.dataset.themeTab === name;
+    tab.classList.toggle("is-active", on);
+    tab.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  $$(".theme-switcher__page").forEach((page) => {
+    page.hidden = page.dataset.themePage !== name;
+  });
+}
+
+function syncAdminUiThemeUi() {
+  syncThemePickerUi();
 }
 
 function syncAdminUiLanguageUi(lang) {
@@ -174,6 +351,9 @@ function clampDashBookmarkCardScalePct(v) {
   return Math.min(140, Math.max(70, n));
 }
 
+/** 100% passa a ter o tamanho que antes era 120%. */
+const DASH_CARD_SCALE_AT_100 = 1.2;
+
 function applyDashBookmarkCardScaleFromSettings(s) {
   const g = $("#dashGrid");
   if (!g) return;
@@ -181,7 +361,7 @@ function applyDashBookmarkCardScaleFromSettings(s) {
   if (s && s.dash_bookmark_card_scale_percent != null) {
     pct = clampDashBookmarkCardScalePct(s.dash_bookmark_card_scale_percent);
   }
-  g.style.setProperty("--dash-s", String(pct / 100));
+  g.style.setProperty("--dash-s", String((pct / 100) * DASH_CARD_SCALE_AT_100));
 }
 
 function syncAdminDashCardScaleUi(pct) {
@@ -252,26 +432,82 @@ function formatImageSizeMb(v) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-/** Toque no SVG interno nem sempre dispara click no celular; touchend + dedupe com click. */
-function wireImageRemoveButton(btn, ref, labelFn) {
-  let lastTouchRm = 0;
-  const run = () => {
-    void removeDockerImage(ref, labelFn());
-  };
-  btn.addEventListener(
-    "touchend",
-    (e) => {
-      if (!btn.dataset.imageRef) return;
-      e.preventDefault();
-      lastTouchRm = Date.now();
-      run();
-    },
-    { passive: false }
-  );
+/** Confirmação in-page. O Safari/iOS bloqueia window.confirm() como pop-up, por isso usamos um <dialog>. */
+function uiConfirm(message, opts = {}) {
+  const dlg = $("#confirmModal");
+  const msgEl = $("#confirmMessage");
+  const okBtn = $("#confirmOkBtn");
+  const cancelBtn = $("#confirmCancelBtn");
+  if (!dlg || !msgEl || !okBtn || !cancelBtn || typeof dlg.showModal !== "function") {
+    return Promise.resolve(window.confirm(message));
+  }
+  msgEl.textContent = message == null ? "" : String(message);
+  okBtn.textContent = opts.okLabel || t("common.confirm");
+  cancelBtn.textContent = opts.cancelLabel || t("common.cancel");
+
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (val) => {
+      if (done) return;
+      done = true;
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      dlg.removeEventListener("cancel", onCancel);
+      dlg.removeEventListener("close", onCancel);
+      try {
+        dlg.close();
+      } catch (_) {}
+      resolve(val);
+    };
+    const onOk = (e) => {
+      e?.preventDefault?.();
+      finish(true);
+    };
+    const onCancel = (e) => {
+      e?.preventDefault?.();
+      finish(false);
+    };
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    dlg.addEventListener("cancel", onCancel);
+    try {
+      dlg.showModal();
+    } catch (_) {
+      finish(window.confirm(message));
+    }
+  });
+}
+
+/** Aviso in-page (substitui alert(), que o iOS pode bloquear após await). */
+function uiAlert(message) {
+  const dlg = $("#confirmModal");
+  const cancelBtn = $("#confirmCancelBtn");
+  if (!dlg || !cancelBtn || typeof dlg.showModal !== "function") {
+    window.alert(message);
+    return Promise.resolve();
+  }
+  cancelBtn.style.display = "none";
+  return uiConfirm(message, { okLabel: t("common.ok") }).then((v) => {
+    cancelBtn.style.display = "";
+    return v;
+  });
+}
+
+/** Liga um handler de clique/toque. Usa apenas `click`, que é confiável em desktop e mobile
+ *  (o SVG interno tem pointer-events:none no CSS, então o toque atinge sempre o botão). */
+function wireTapClick(btn, handler, opts = {}) {
+  if (!btn) return;
+  const stopProp = !!opts.stopPropagation;
   btn.addEventListener("click", (e) => {
     e.preventDefault();
-    if (Date.now() - lastTouchRm < 500) return;
-    run();
+    if (stopProp) e.stopPropagation();
+    handler(e);
+  });
+}
+
+function wireImageRemoveButton(btn, ref, labelFn) {
+  wireTapClick(btn, () => {
+    void removeDockerImage(ref, labelFn());
   });
 }
 
@@ -543,6 +779,14 @@ function buildContainerRowHtml(c) {
     </tr>`;
 }
 
+function containerMatchesFilter(c, q) {
+  if (!q) return true;
+  const hay = [c.name, c.image, c.state, c.status, c.id, ...(Array.isArray(c.ports) ? c.ports : [])]
+    .map((x) => String(x || "").toLowerCase())
+    .join(" ");
+  return q.split(/\s+/).every((term) => hay.includes(term));
+}
+
 function renderContainerTableBody() {
   const tb = $("#containersTable tbody");
   if (!tb) return;
@@ -550,11 +794,42 @@ function renderContainerTableBody() {
     tb.innerHTML = "";
     return;
   }
-  const sorted = [...lastContainers].sort((a, b) =>
+  const q = containerFilterText.trim().toLowerCase();
+  const filtered = lastContainers.filter((c) => containerMatchesFilter(c, q));
+  if (!filtered.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="muted" style="padding:0.9rem 0.75rem">${escapeHtml(t("containers.empty.filtered"))}</td></tr>`;
+    updateContainerSortHeaders();
+    return;
+  }
+  const sorted = [...filtered].sort((a, b) =>
     compareContainers(a, b, containerSort.key, containerSort.dir)
   );
   tb.innerHTML = sorted.map((c) => buildContainerRowHtml(c)).join("");
   updateContainerSortHeaders();
+  wireContainerTableActions();
+}
+
+function wireContainerTableActions() {
+  const tb = $("#containersTable tbody");
+  if (!tb) return;
+  $$("button[data-act]", tb).forEach((btn) => {
+    wireTapClick(btn, () => {
+      const tr = btn.closest("tr");
+      const id = tr?.dataset?.id;
+      if (!id) return;
+      const act = btn.dataset.act;
+      if (act === "logs") {
+        const name = tr.querySelector("strong")?.textContent || id;
+        void showLogs(id, name);
+        return;
+      }
+      if (act === "remove") {
+        void removeContainer(id);
+        return;
+      }
+      void actOnContainer(id, act);
+    });
+  });
 }
 
 function barClass(kind) {
@@ -689,6 +964,15 @@ function renderOverviewBars(top) {
   });
 }
 
+function formatDockerUnavailableBanner(message, extra) {
+  const msg = String(message || "").trim();
+  const generic = msg === "" || msg === "Docker indisponível" || msg === "Docker unavailable" || msg === "Service Unavailable";
+  const text = generic
+    ? t("overview.banner.docker_unavailable", { message: "" }).replace(/\s+$/, "")
+    : t("overview.banner.docker_unavailable", { message: msg });
+  return `${text}${extra || ""}`.replace(/[ \t]{2,}/g, " ");
+}
+
 async function loadOverviewLive() {
   const banner = $("#banner");
   try {
@@ -702,7 +986,7 @@ async function loadOverviewLive() {
     banner.classList.remove("err");
   } catch (e) {
     const extra = await dockerDisconnectedHint();
-    banner.textContent = t("overview.banner.docker_unavailable", { message: e.message || "" }) + extra;
+    banner.textContent = formatDockerUnavailableBanner(e.message, extra);
     banner.classList.remove("hidden");
     banner.classList.add("err");
   }
@@ -722,7 +1006,7 @@ async function loadDashboard() {
     applyOverviewPayload(data);
   } catch (e) {
     const extra = await dockerDisconnectedHint();
-    banner.textContent = t("overview.banner.docker_unavailable", { message: e.message || "" }) + extra;
+    banner.textContent = formatDockerUnavailableBanner(e.message, extra);
     banner.classList.remove("hidden");
     banner.classList.add("err");
   }
@@ -806,7 +1090,7 @@ async function actOnContainer(id, action) {
   });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
-    alert(j.detail || t("containers.alert.action_failed"));
+    await uiAlert(j.detail || t("containers.alert.action_failed"));
     return;
   }
   await loadContainers();
@@ -816,13 +1100,16 @@ async function actOnContainer(id, action) {
 async function removeContainer(id) {
   const row = lastContainers.find((x) => x.id_full === id);
   if (row && containerProtectedFromRemove(row)) {
-    alert(t("containers.alert.stop_before_remove"));
+    await uiAlert(t("containers.alert.stop_before_remove"));
+    return;
+  }
+  if (!(await uiConfirm(t("containers.confirm.remove", { name: row?.name || id.slice(0, 12) })))) {
     return;
   }
   const r = await fetch(`/api/containers/${encodeURIComponent(id)}?force=true`, { method: "DELETE" });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
-    alert(j.detail || t("containers.alert.remove_failed"));
+    await uiAlert(j.detail || t("containers.alert.remove_failed"));
     return;
   }
   await loadContainers();
@@ -1084,6 +1371,14 @@ function renderDashBookmarks(items, containers = lastDashBookmarkContainers) {
     editBtn.setAttribute("aria-label", t("dash.tile.edit_aria"));
     editBtn.innerHTML = IC.pencil;
     editBtn.draggable = false;
+    wireTapClick(
+      editBtn,
+      () => {
+        const row = lastDashBookmarks.find((x) => x.id === it.id);
+        if (row) openDashBookmarkModal(row);
+      },
+      { stopPropagation: true },
+    );
 
     const delBtn = document.createElement("button");
     delBtn.type = "button";
@@ -1093,6 +1388,21 @@ function renderDashBookmarks(items, containers = lastDashBookmarkContainers) {
     delBtn.setAttribute("aria-label", t("dash.tile.remove_aria"));
     delBtn.innerHTML = IC.trash;
     delBtn.draggable = false;
+    wireTapClick(
+      delBtn,
+      async () => {
+        const bid = wrap.dataset.bookmarkId;
+        if (!bid || !(await uiConfirm(t("dash.confirm.remove_tile")))) return;
+        const r = await fetch(`/api/dash-bookmarks/${encodeURIComponent(bid)}`, { method: "DELETE" });
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          await uiAlert(apiDetailMessage(j, t("dash.alert.remove_failed")));
+          return;
+        }
+        loadDashBookmarks();
+      },
+      { stopPropagation: true },
+    );
 
     bar.appendChild(editBtn);
     bar.appendChild(delBtn);
@@ -1394,7 +1704,7 @@ async function saveDashBookmarkFromForm(ev) {
 
 async function deleteDashBookmarkConfirmed() {
   const id = $("#dashBmId").value.trim();
-  if (!id || !confirm(t("dash.confirm.delete_modal"))) return;
+  if (!id || !(await uiConfirm(t("dash.confirm.delete_modal")))) return;
   const r = await fetch(`/api/dash-bookmarks/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
@@ -1694,26 +2004,13 @@ function containerLogTargetId(bookmark, containers) {
 }
 
 function wireDashLogButton(btn, containerId, title) {
-  let lastTouch = 0;
-  const run = () => {
-    void showLogsLive(containerId, title);
-  };
-  btn.addEventListener(
-    "touchend",
-    (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      lastTouch = Date.now();
-      run();
+  wireTapClick(
+    btn,
+    () => {
+      void showLogsLive(containerId, title);
     },
-    { passive: false },
+    { stopPropagation: true },
   );
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (Date.now() - lastTouch < 450) return;
-    run();
-  });
 }
 
 function resolveContainerForBookmark(bookmark, containers) {
@@ -1994,6 +2291,38 @@ function dashImportSelectByPredicate(pred) {
   });
 }
 
+function imageMatchesFilter(im, q) {
+  if (!q) return true;
+  const tags = Array.isArray(im?.tags) ? im.tags : [];
+  const hay = [...tags, im?.id, im?.id_full]
+    .map((x) => String(x || "").toLowerCase())
+    .join(" ");
+  return q.split(/\s+/).every((term) => hay.includes(term));
+}
+
+function renderImageGrid() {
+  const g = $("#imageGrid");
+  if (!g) return;
+  g.innerHTML = "";
+  if (!lastImages.length) {
+    const p = document.createElement("p");
+    p.className = "image-grid-empty muted";
+    p.textContent = t("images.empty");
+    g.appendChild(p);
+    return;
+  }
+  const q = imageFilterText.trim().toLowerCase();
+  const filtered = lastImages.filter((im) => im && typeof im === "object" && imageMatchesFilter(im, q));
+  if (!filtered.length) {
+    const p = document.createElement("p");
+    p.className = "image-grid-empty muted";
+    p.textContent = t("images.empty.filtered");
+    g.appendChild(p);
+    return;
+  }
+  filtered.forEach((im) => appendImageCard(g, im));
+}
+
 function loadImages() {
   const g = $("#imageGrid");
   if (!g) return;
@@ -2009,20 +2338,11 @@ function loadImages() {
       return Array.isArray(data) ? data : [];
     })
     .then((imgs) => {
-      g.innerHTML = "";
-      if (!imgs.length) {
-        const p = document.createElement("p");
-        p.className = "image-grid-empty muted";
-        p.textContent = t("images.empty");
-        g.appendChild(p);
-        return;
-      }
-      imgs.forEach((im) => {
-        if (!im || typeof im !== "object") return;
-        appendImageCard(g, im);
-      });
+      lastImages = imgs;
+      renderImageGrid();
     })
     .catch((err) => {
+      lastImages = [];
       g.innerHTML = "";
       const p = document.createElement("p");
       p.className = "image-grid-msg err";
@@ -2035,22 +2355,15 @@ let dockerImageRemoveBusy = false;
 
 async function removeDockerImage(ref, displayLabel) {
   if (!ref || !String(ref).trim()) {
-    alert(t("images.alert.ref_not_found"));
+    await uiAlert(t("images.alert.ref_not_found"));
     return;
   }
   if (dockerImageRemoveBusy) return;
+  if (!(await uiConfirm(t("images.confirm.delete", { label: displayLabel })))) {
+    return;
+  }
   dockerImageRemoveBusy = true;
   try {
-    const ok = await new Promise((resolve) => {
-      window.setTimeout(() => {
-        resolve(
-          window.confirm(
-            t("images.confirm.delete", { label: displayLabel })
-          )
-        );
-      }, 0);
-    });
-    if (!ok) return;
     const params = new URLSearchParams();
     params.set("ref", ref);
     params.set("force", "true");
@@ -2058,7 +2371,7 @@ async function removeDockerImage(ref, displayLabel) {
     const r = await fetch(u, { method: "DELETE", cache: "no-store" });
     if (!r.ok) {
       const j = await r.json().catch(() => ({}));
-      alert(apiDetailMessage(j, t("images.alert.delete_failed")));
+      await uiAlert(apiDetailMessage(j, t("images.alert.delete_failed")));
       return;
     }
     await loadImages();
@@ -2091,7 +2404,7 @@ function stopOverviewLive() {
 
 async function applySettingsFromServer() {
   try {
-    const r = await fetch("/api/settings");
+    const r = await fetch("/api/settings", { cache: "no-store" });
     if (!r.ok) return;
     const s = await r.json();
     const sec = Math.max(5, Math.min(600, Number(s.dashboard_refresh_seconds) || 12));
@@ -2243,7 +2556,7 @@ async function loadAdmin() {
   if (healthLine) healthLine.textContent = "";
 
   const [settingsRes, infoRes, filesRes] = await Promise.all([
-    fetch("/api/settings"),
+    fetch("/api/settings", { cache: "no-store" }),
     fetch("/api/admin/info"),
     fetch("/api/admin/data-files"),
   ]);
@@ -2297,6 +2610,16 @@ async function loadAdmin() {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  uiPrimary = document.documentElement.dataset.accent || DEFAULT_UI_PRIMARY;
+  if (!UI_ACCENTS[uiPrimary] && uiPrimary !== "custom") uiPrimary = DEFAULT_UI_PRIMARY;
+  uiPattern = UI_PATTERNS.has(document.documentElement.dataset.pattern)
+    ? document.documentElement.dataset.pattern
+    : DEFAULT_UI_PATTERN;
+  try {
+    const storedHex = normalizeHexColor(localStorage.getItem(UI_PRIMARY_HEX_KEY));
+    if (storedHex) uiPrimaryHex = storedHex;
+  } catch (_) {}
+  syncThemePickerUi();
   unwrapStaleLiquidGlassWrapper();
   wireBrandLogo();
   window.DashFlexI18n.initLocale();
@@ -2392,44 +2715,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  $("#dashGrid")?.addEventListener("click", (ev) => {
-    const logBtn = ev.target.closest('[data-act="dash-logs-live"]');
-    if (logBtn) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const id = logBtn.dataset.containerId;
-      if (!id) return;
-      const wrap = logBtn.closest(".dash-tile-wrap");
-      const title = wrap?.querySelector(".dash-tile-title")?.textContent?.trim() || id;
-      void showLogsLive(id, title);
-      return;
-    }
-    const editBtn = ev.target.closest('[data-act="dash-edit"]');
-    if (editBtn) {
-      ev.preventDefault();
-      const wrap = editBtn.closest(".dash-tile-wrap");
-      const bid = wrap?.dataset.bookmarkId;
-      const row = lastDashBookmarks.find((x) => x.id === bid);
-      if (row) openDashBookmarkModal(row);
-      return;
-    }
-    const delBtn = ev.target.closest('[data-act="dash-remove"]');
-    if (delBtn) {
-      ev.preventDefault();
-      const wrap = delBtn.closest(".dash-tile-wrap");
-      const bid = wrap?.dataset.bookmarkId;
-      if (!bid || !confirm(t("dash.confirm.remove_tile"))) return;
-      fetch(`/api/dash-bookmarks/${encodeURIComponent(bid)}`, { method: "DELETE" }).then(async (r) => {
-        if (!r.ok) {
-          const j = await r.json().catch(() => ({}));
-          alert(apiDetailMessage(j, t("dash.alert.remove_failed")));
-          return;
-        }
-        loadDashBookmarks();
-      });
-    }
-  });
-
   $("#dashBmForm")?.addEventListener("submit", saveDashBookmarkFromForm);
   $("#dashBmClose")?.addEventListener("click", closeDashBookmarkModal);
   $("#dashBmCancelBtn")?.addEventListener("click", closeDashBookmarkModal);
@@ -2437,7 +2722,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#dashBmIconUrl")?.addEventListener("input", () => {
     if (!$("#dashBmIconFile")?.files?.[0]) renderDashBmPreview();
   });
-  $("#dashBmRemoveIconBtn")?.addEventListener("click", () => {
+  wireTapClick($("#dashBmRemoveIconBtn"), () => {
     dashBmRemoveIconOnSave = true;
     syncDashBmRemoveIconBtn();
     renderDashBmPreview();
@@ -2493,6 +2778,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   $("#refreshImages")?.addEventListener("click", () => loadImages());
 
+  $("#containersFilter")?.addEventListener("input", () => {
+    containerFilterText = $("#containersFilter")?.value ?? "";
+    renderContainerTableBody();
+  });
+
+  $("#imagesFilter")?.addEventListener("input", () => {
+    imageFilterText = $("#imagesFilter")?.value ?? "";
+    renderImageGrid();
+  });
+
   $("#adminSaveDocker")?.addEventListener("click", async () => {
     const dockerUrl = $("#adminDockerUrl")?.value.trim() ?? "";
     const r = await fetch("/api/settings", {
@@ -2512,7 +2807,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#adminSaveInterface")?.addEventListener("click", async () => {
     const raw = $("#adminAppDisplayName")?.value ?? "";
     const scale = clampDashBookmarkCardScalePct($("#adminDashCardScale")?.value ?? 100);
-    const theme = $("#adminUiTheme")?.value ?? DEFAULT_UI_THEME;
     const uiLanguage = ($("#adminUiLanguage")?.value || "").trim().toLowerCase();
     const r = await fetch("/api/settings", {
       method: "PATCH",
@@ -2520,7 +2814,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       body: JSON.stringify({
         app_display_name: raw.trim(),
         dash_bookmark_card_scale_percent: scale,
-        ui_theme: normalizeUiTheme(theme),
         ui_language: uiLanguage === "en" ? "en" : "pt",
       }),
     });
@@ -2540,17 +2833,70 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  $("#themeSwitcherToggle")?.addEventListener("click", () => {
+    const panel = $("#themeSwitcherPanel");
+    setThemeSwitcherOpen(!!panel?.hidden);
+  });
+
+  $("#themeSwitcher")?.addEventListener("click", (ev) => {
+    const tab = ev.target.closest(".theme-switcher__tab");
+    if (tab?.dataset.themeTab) {
+      setThemeSwitcherTab(tab.dataset.themeTab);
+      return;
+    }
+    const styleBtn = ev.target.closest(".theme-style[data-ui-theme]");
+    if (styleBtn) {
+      applyUiTheme(styleBtn.dataset.uiTheme);
+      scheduleThemePersist();
+    }
+  });
+
+  document.addEventListener("click", (ev) => {
+    const panel = $("#themeSwitcherPanel");
+    const root = $("#themeSwitcher");
+    if (!panel || panel.hidden || !root) return;
+    if (root.contains(ev.target)) return;
+    setThemeSwitcherOpen(false);
+  });
+
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") setThemeSwitcherOpen(false);
+  });
+
+  $("#themeSwatches")?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".theme-swatch[data-accent]");
+    if (!btn || btn.dataset.accent === "custom") return;
+    applyUiPrimary(btn.dataset.accent, uiPrimaryHex);
+    scheduleThemePersist();
+  });
+
+  $("#themeCustomColor")?.addEventListener("input", () => {
+    const hex = normalizeHexColor($("#themeCustomColor")?.value);
+    if (!hex) return;
+    uiPrimaryHex = hex;
+    applyUiPrimary("custom", hex);
+    scheduleThemePersist();
+  });
+  $("#themeCustomColor")?.addEventListener("click", () => {
+    const hex = normalizeHexColor($("#themeCustomColor")?.value);
+    if (!hex) return;
+    uiPrimaryHex = hex;
+    applyUiPrimary("custom", hex);
+  });
+
+  $("#themePatterns")?.addEventListener("click", (ev) => {
+    const btn = ev.target.closest(".theme-pattern[data-pattern]");
+    if (!btn) return;
+    applyUiPattern(btn.dataset.pattern);
+    scheduleThemePersist();
+  });
+
   $("#adminDashCardScale")?.addEventListener("input", () => {
     const rng = $("#adminDashCardScale");
     const lab = $("#adminDashCardScaleVal");
     const v = rng ? clampDashBookmarkCardScalePct(rng.value) : 100;
     if (lab) lab.textContent = String(v);
     applyDashBookmarkCardScaleFromSettings({ dash_bookmark_card_scale_percent: v });
-  });
-
-  $("#adminUiTheme")?.addEventListener("change", () => {
-    const theme = $("#adminUiTheme")?.value ?? DEFAULT_UI_THEME;
-    applyUiTheme(theme);
   });
 
   $("#adminTestDocker")?.addEventListener("click", async () => {
@@ -2569,10 +2915,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("#adminClearLinks")?.addEventListener("click", async () => {
-    if (!confirm(t("admin.confirm.clear_links"))) return;
+    if (!(await uiConfirm(t("admin.confirm.clear_links")))) return;
     const r = await fetch("/api/admin/links", { method: "DELETE" });
     if (!r.ok) {
-      alert(t("admin.alert.clear_links_failed"));
+      await uiAlert(t("admin.alert.clear_links_failed"));
       return;
     }
     await loadAdmin();
@@ -2580,11 +2926,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   $("#adminClearDashBookmarks")?.addEventListener("click", async () => {
-    if (!confirm(t("admin.confirm.clear_bookmarks"))) return;
+    if (!(await uiConfirm(t("admin.confirm.clear_bookmarks")))) return;
     const r = await fetch("/api/admin/dash-bookmarks", { method: "DELETE" });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      alert(apiDetailMessage(j, t("admin.alert.clear_bookmarks_failed")));
+      await uiAlert(apiDetailMessage(j, t("admin.alert.clear_bookmarks_failed")));
       return;
     }
     await loadAdmin();
@@ -2601,7 +2947,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const stopped = !!$("#adminPruneStopped")?.checked;
     const nets = !!$("#adminPruneNetworks")?.checked;
     if (!dangling && !stopped && !nets) {
-      alert(t("admin.prune.alert.select_option"));
+      await uiAlert(t("admin.prune.alert.select_option"));
       return;
     }
     const labels = [];
@@ -2609,9 +2955,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (stopped) labels.push(t("admin.prune.label.stopped"));
     if (nets) labels.push(t("admin.prune.label.networks"));
     if (
-      !confirm(
+      !(await uiConfirm(
         `${t("admin.prune.confirm.title")}\n\n${t("admin.prune.confirm.irreversible")}\n• ${labels.join("\n• ")}\n\n${t("admin.prune.confirm.continue")}`
-      )
+      ))
     ) {
       return;
     }
@@ -2655,25 +3001,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (e) {
       if (line) line.textContent = String(e?.message || e);
     }
-  });
-
-  $("#containersTable")?.addEventListener("click", (ev) => {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const tr = btn.closest("tr");
-    const id = tr?.dataset?.id;
-    if (!id) return;
-    const act = btn.dataset.act;
-    if (act === "logs") {
-      const name = tr.querySelector("strong")?.textContent || id;
-      showLogs(id, name);
-      return;
-    }
-    if (act === "remove") {
-      removeContainer(id);
-      return;
-    }
-    actOnContainer(id, act);
   });
 
   $("#logsClose")?.addEventListener("click", () => {

@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, field_validator
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.docker_service import (
+    DockerConnectionError,
     DockerSvc,
     cached_info,
     cached_running_summaries,
@@ -125,13 +126,24 @@ async def _lifespan(_app: FastAPI):
 
 app = FastAPI(title="DashFlex", version=APP_VERSION, lifespan=_lifespan)
 
+# allow_credentials=True com origem "*" é inválido pela spec CORS (navegadores rejeitam);
+# a app não usa cookies, então credenciais ficam desativadas.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    resp = await call_next(request)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    return resp
 
 class ActionBody(BaseModel):
     action: Literal["start", "stop", "restart"]
@@ -164,7 +176,10 @@ def _docker_unavailable() -> None:
 
 
 def _require_docker() -> DockerSvc:
-    d = get_docker()
+    try:
+        d = get_docker()
+    except DockerConnectionError:
+        _docker_unavailable()
     if not ping_cached(d):
         _docker_unavailable()
     return d
@@ -179,7 +194,21 @@ class SettingsPatch(BaseModel):
     containers_show_stopped_default: bool | None = None
     app_display_name: str | None = Field(None, max_length=80)
     dash_bookmark_card_scale_percent: int | None = Field(None, ge=70, le=140)
-    ui_theme: Literal["glass", "frost"] | None = None
+    ui_theme: Literal["scifi", "paper", "athanor"] | None = None
+    ui_primary: Literal["darkgreen", "blue", "purple", "black", "custom"] | None = None
+    ui_primary_hex: str | None = None
+    ui_pattern: Literal[
+        "grid",
+        "dots",
+        "diagonal",
+        "circuit",
+        "hex",
+        "binary",
+        "stripes",
+        "honeycomb",
+        "spark",
+        "cross",
+    ] | None = None
     ui_language: Literal["pt", "en"] | None = None
 
     @field_validator("app_display_name")
@@ -188,6 +217,23 @@ class SettingsPatch(BaseModel):
         if v is None:
             return None
         return v.strip()
+
+    @field_validator("ui_theme")
+    @classmethod
+    def ui_theme_alias(cls, v: str | None) -> str | None:
+        if v == "athanor":
+            return "scifi"
+        return v
+
+    @field_validator("ui_primary_hex")
+    @classmethod
+    def ui_primary_hex_ok(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        cleaned = v.strip().lower()
+        if not re.fullmatch(r"#[0-9a-f]{6}", cleaned):
+            raise ValueError("ui_primary_hex deve ser #rrggbb")
+        return cleaned
 
 class DockerTestBody(BaseModel):
 
@@ -264,8 +310,13 @@ def docker_status() -> dict[str, Any]:
     used_explicit = eff is not None
     ignored_windows_url = bool(raw_cfg) and eff is None and sys.platform != "win32"
 
-    d = get_docker()
-    ok = ping_cached(d)
+    d = None
+    ok = False
+    try:
+        d = get_docker()
+        ok = ping_cached(d)
+    except DockerConnectionError:
+        ok = False
     if not ok:
         hint = ""
         if ignored_windows_url:
@@ -273,6 +324,11 @@ def docker_status() -> dict[str, Any]:
                 "A URL base do Docker salva parece ser para Windows ou Docker Desktop e foi ignorada neste sistema. "
                 "Em Administrativo, limpe o campo, salve e reinicie o container. Confira também "
                 "-v /var/run/docker.sock:/var/run/docker.sock."
+            )
+        elif sys.platform == "win32" and not raw_cfg:
+            hint = (
+                "Inicie o Docker Desktop e aguarde ficar pronto (ícone verde na bandeja do sistema). "
+                "Depois recarregue esta página."
             )
         elif not raw_cfg:
             hint = (
@@ -528,6 +584,12 @@ def patch_settings(body: SettingsPatch) -> dict[str, Any]:
         cur["dash_bookmark_card_scale_percent"] = body.dash_bookmark_card_scale_percent
     if body.ui_theme is not None:
         cur["ui_theme"] = body.ui_theme
+    if body.ui_primary is not None:
+        cur["ui_primary"] = body.ui_primary
+    if body.ui_primary_hex is not None:
+        cur["ui_primary_hex"] = body.ui_primary_hex
+    if body.ui_pattern is not None:
+        cur["ui_pattern"] = body.ui_pattern
     if body.ui_language is not None:
         cur["ui_language"] = body.ui_language
     settings_store.save_settings(cur)
@@ -592,13 +654,19 @@ def dash_bookmark_get_icon(bookmark_id: str) -> FileResponse:
     if path is None:
         raise HTTPException(404, "Sem ícone")
     mt = _DASH_ICON_MEDIA.get(path.suffix.lower(), "application/octet-stream")
-    return FileResponse(path, media_type=mt)
+    resp = FileResponse(path, media_type=mt)
+    resp.headers["Cache-Control"] = "public, max-age=86400"
+    if mt == "image/svg+xml":
+        # SVG pode conter <script>; sandbox impede execução se aberto direto no navegador.
+        resp.headers["Content-Security-Policy"] = "sandbox"
+    return resp
 
 @app.post("/api/dash-bookmarks/{bookmark_id}/icon")
 async def dash_bookmark_upload_icon(bookmark_id: str, file: UploadFile = File(...)) -> dict[str, Any]:
     if not dash_store.bookmark_exists(bookmark_id):
         raise HTTPException(404, "Atalho não encontrado")
-    data = await file.read()
+    # Lê no máximo o limite + 1 byte: evita carregar uploads gigantes na memória.
+    data = await file.read(dash_store.ICON_MAX_BYTES + 1)
     try:
         mime = dash_store.save_icon(bookmark_id, data)
     except ValueError as e:
@@ -650,9 +718,12 @@ def dash_bookmark_remove_icon(bookmark_id: str) -> dict[str, str]:
 def admin_info() -> dict[str, Any]:
     import platform
 
-    d = get_docker()
+    ping_ok = False
     try:
+        d = get_docker()
         ping_ok = bool(ping_cached(d))
+    except DockerConnectionError:
+        ping_ok = False
     except Exception:
         ping_ok = False
 

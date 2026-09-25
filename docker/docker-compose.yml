@@ -1,0 +1,22 @@
+services:
+  dashflex:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: dashflex:local
+    container_name: dashflex
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      HOST: "0.0.0.0"
+      PYTHONDONTWRITEBYTECODE: "1"
+      DOCKER_HOST: unix:///var/run/docker.sock
+      DASHFLEX_DATA_DIR: /app/data
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dashflex_data:/app/data
+
+volumes:
+  dashflex_data:

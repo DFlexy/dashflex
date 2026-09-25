@@ -8,13 +8,15 @@ __pycache__/
 *.egg-info/
 .eggs/
 
-# Runtime data (persistido no volume Docker)
+# Runtime data (volume Docker, nao fica no repositorio)
 data/*.json
 !data/.gitkeep
+docker/data/
 
-# Export offline de imagens (uso local — não publicar)
+# Export local
 scripts/
 dist/
+build/
 *.tar
 *.tar.gz
 

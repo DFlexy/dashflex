@@ -3,19 +3,56 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" id="themeColorMeta" content="#05050a" />
     <title>DashFlex — Docker</title>
     <link rel="icon" href="/logo/logo.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/logo/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script>
       (function () {
         var k = "dashflex_ui_theme";
         var t = localStorage.getItem(k);
-        if (t === "frost" || t === "glass") document.documentElement.dataset.theme = t;
-        else if (t === "aurora") document.documentElement.dataset.theme = "frost";
-        else document.documentElement.dataset.theme = "glass";
+        if (t === "paper" || t === "frost" || t === "light") document.documentElement.dataset.theme = "paper";
+        else document.documentElement.dataset.theme = "scifi";
+      })();
+      (function () {
+        var accents = {
+          darkgreen: "#0a6b3c",
+          blue: "#2f80ff",
+          purple: "#8f00ff",
+          black: "#000000",
+        };
+        var patterns = {
+          grid: 1, dots: 1, diagonal: 1, circuit: 1, hex: 1,
+          binary: 1, stripes: 1, honeycomb: 1, spark: 1, cross: 1,
+        };
+        var id = localStorage.getItem("dashflex_ui_primary") || "blue";
+        if (!accents[id] && id !== "custom") id = "blue";
+        var hex = id === "custom" ? localStorage.getItem("dashflex_ui_primary_hex") || "#2dd4bf" : accents[id];
+        if (!/^#[0-9a-fA-F]{6}$/.test(hex || "")) hex = "#2f80ff";
+        var root = document.documentElement;
+        var n = parseInt(hex.slice(1), 16);
+        var r = (n >> 16) & 255;
+        var g = (n >> 8) & 255;
+        var b = n & 255;
+        var y = (r * 299 + g * 587 + b * 114) / 1000;
+        var dark = root.dataset.theme !== "paper";
+        if ((dark && y < 42) || (!dark && y > 214)) {
+          hex = dark ? "#e6e6e6" : "#1c1c1c";
+          n = parseInt(hex.slice(1), 16);
+          r = (n >> 16) & 255;
+          g = (n >> 8) & 255;
+          b = n & 255;
+          y = (r * 299 + g * 587 + b * 114) / 1000;
+        }
+        root.dataset.accent = id;
+        root.style.setProperty("--accent-rgb", r + ", " + g + ", " + b);
+        root.style.setProperty("--accent", hex);
+        root.style.setProperty("--on-accent", y > 160 ? "#06140e" : "#ffffff");
+        var pat = localStorage.getItem("dashflex_ui_pattern") || "grid";
+        root.dataset.pattern = patterns[pat] ? pat : "grid";
       })();
       (function () {
         var k = "dashflex_ui_language";
@@ -34,14 +71,14 @@
         document.documentElement.dataset.locale = lang;
       })();
     </script>
-    <link rel="stylesheet" href="/static/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/styles.css?v=20" />
   </head>
   <body>
     <div class="layout">
       <header class="site-header">
         <div class="site-header__brand">
           <div class="brand-mark" id="brandMark" hidden>
-            <img id="brandLogo" class="brand-logo" src="/logo/logo.png" alt="" width="28" height="28" decoding="async" />
+            <img id="brandLogo" class="brand-logo" src="/logo/logo.png" alt="" width="32" height="32" decoding="async" />
           </div>
           <span class="brand">DashFlex</span>
         </div>
@@ -113,6 +150,7 @@
             <h1 class="page-title" data-i18n="page.containers">Containers</h1>
             <div id="containersBanner" class="banner hidden"></div>
             <div class="toolbar toolbar-wrap">
+              <input type="search" id="containersFilter" class="toolbar-filter" data-i18n-placeholder="containers.filter_ph" placeholder="Filtrar por nome, imagem…" autocomplete="off" />
               <label><input type="checkbox" id="showAllContainers" checked /> <span data-i18n="containers.show_stopped">Mostrar parados</span></label>
               <button type="button" class="btn" id="refreshContainers" data-i18n="containers.refresh">Atualizar</button>
               <span class="toolbar-hint" data-i18n="containers.sort_hint">Ordenar: clique no cabeçalho da coluna. Health = Docker.</span>
@@ -138,6 +176,7 @@
           <section id="view-images" class="view hidden">
             <h1 class="page-title" data-i18n="page.images">Imagens locais</h1>
             <div class="toolbar toolbar-wrap images-toolbar-row">
+              <input type="search" id="imagesFilter" class="toolbar-filter" data-i18n-placeholder="images.filter_ph" placeholder="Filtrar por tag ou ID…" autocomplete="off" />
               <button type="button" class="btn" id="refreshImages" data-i18n="images.refresh">Atualizar</button>
             </div>
             <p class="images-page-hint muted small" data-i18n="images.hint" data-i18n-html><strong>Apagar</strong> remove apenas a imagem (os containers permanecem).</p>
@@ -188,13 +227,6 @@
                 <label class="field">
                   <span><span data-i18n="admin.interface.card_scale">Tamanho dos cartões:</span> <strong id="adminDashCardScaleVal">100</strong>%</span>
                   <input type="range" id="adminDashCardScale" min="70" max="140" step="5" value="100" />
-                </label>
-                <label class="field">
-                  <span data-i18n="admin.interface.theme">Tema visual</span>
-                  <select id="adminUiTheme">
-                    <option value="glass" data-i18n="admin.theme.dark">Escuro</option>
-                    <option value="frost" data-i18n="admin.theme.light">Claro</option>
-                  </select>
                 </label>
                 <label class="field">
                   <span data-i18n="admin.interface.language">Idioma</span>
@@ -322,7 +354,61 @@
       <pre class="logs-pre" id="logsBody"></pre>
     </dialog>
 
-    <script src="/static/js/i18n.js" defer></script>
-    <script src="/static/js/app.js" defer></script>
+    <dialog class="modal modal-narrow" id="confirmModal">
+      <div class="modal-head"><h2 id="confirmTitle" data-i18n="common.confirm">Confirmar</h2></div>
+      <div class="confirm-body">
+        <p id="confirmMessage" class="confirm-message"></p>
+        <div class="confirm-actions">
+          <button type="button" class="btn" id="confirmCancelBtn" data-i18n="common.cancel">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="confirmOkBtn" data-i18n="common.confirm">Confirmar</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div class="theme-switcher" id="themeSwitcher">
+      <button type="button" class="theme-switcher__toggle" id="themeSwitcherToggle" aria-expanded="false" aria-controls="themeSwitcherPanel" data-i18n-aria="switcher.open" aria-label="Temas">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42m12.72-12.72 1.42-1.42"/></svg>
+      </button>
+      <div class="theme-switcher__panel" id="themeSwitcherPanel" hidden>
+        <div class="theme-switcher__tabs" role="tablist">
+          <button type="button" class="theme-switcher__tab" id="themeTabStyles" role="tab" aria-selected="false" aria-controls="themePageStyles" data-theme-tab="styles" data-i18n="switcher.styles">Estilos do tema</button>
+          <button type="button" class="theme-switcher__tab is-active" id="themeTabColors" role="tab" aria-selected="true" aria-controls="themePageColors" data-theme-tab="colors" data-i18n="switcher.colors">Cores do tema</button>
+        </div>
+        <div class="theme-switcher__page" id="themePageStyles" data-theme-page="styles" role="tabpanel" hidden>
+          <div class="theme-style-grid">
+            <button type="button" class="theme-style" data-ui-theme="scifi" data-i18n="admin.theme.scifi">SciFi (escuro)</button>
+            <button type="button" class="theme-style" data-ui-theme="paper" data-i18n="admin.theme.paper">Paper (claro)</button>
+          </div>
+        </div>
+        <div class="theme-switcher__page" id="themePageColors" data-theme-page="colors" role="tabpanel">
+          <p class="theme-colors__label" data-i18n="admin.theme.primary">Cor primária</p>
+          <div class="theme-swatches" id="themeSwatches">
+            <button type="button" class="theme-swatch" data-accent="blue" data-i18n-aria="admin.theme.swatch.blue" aria-label="Azul"></button>
+            <button type="button" class="theme-swatch" data-accent="purple" data-i18n-aria="admin.theme.swatch.purple" aria-label="Roxo"></button>
+            <button type="button" class="theme-swatch" data-accent="darkgreen" data-i18n-aria="admin.theme.swatch.darkgreen" aria-label="Verde escuro"></button>
+            <button type="button" class="theme-swatch" data-accent="black" data-i18n-aria="admin.theme.swatch.black" aria-label="Preto"></button>
+            <label class="theme-swatch theme-swatch--custom" data-accent="custom">
+              <input type="color" id="themeCustomColor" value="#2dd4bf" data-i18n-aria="admin.theme.swatch.custom" aria-label="Cor personalizada" />
+            </label>
+          </div>
+          <p class="theme-colors__label" data-i18n="admin.theme.patterns">Padrões de fundo</p>
+          <div class="theme-patterns" id="themePatterns">
+            <button type="button" class="theme-pattern" data-pattern="grid" data-i18n-aria="admin.theme.pattern.grid" aria-label="Grade"></button>
+            <button type="button" class="theme-pattern" data-pattern="dots" data-i18n-aria="admin.theme.pattern.dots" aria-label="Pontos"></button>
+            <button type="button" class="theme-pattern" data-pattern="diagonal" data-i18n-aria="admin.theme.pattern.diagonal" aria-label="Diagonal"></button>
+            <button type="button" class="theme-pattern" data-pattern="circuit" data-i18n-aria="admin.theme.pattern.circuit" aria-label="Circuito"></button>
+            <button type="button" class="theme-pattern" data-pattern="hex" data-i18n-aria="admin.theme.pattern.hex" aria-label="Hexágonos"></button>
+            <button type="button" class="theme-pattern" data-pattern="binary" data-i18n-aria="admin.theme.pattern.binary" aria-label="Binário"></button>
+            <button type="button" class="theme-pattern" data-pattern="stripes" data-i18n-aria="admin.theme.pattern.stripes" aria-label="Listras"></button>
+            <button type="button" class="theme-pattern" data-pattern="honeycomb" data-i18n-aria="admin.theme.pattern.honeycomb" aria-label="Colmeia"></button>
+            <button type="button" class="theme-pattern" data-pattern="spark" data-i18n-aria="admin.theme.pattern.spark" aria-label="Brilhos"></button>
+            <button type="button" class="theme-pattern" data-pattern="cross" data-i18n-aria="admin.theme.pattern.cross" aria-label="Cruz"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/js/i18n.js?v=20" defer></script>
+    <script src="/static/js/app.js?v=20" defer></script>
   </body>
 </html>

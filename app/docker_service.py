@@ -13,6 +13,10 @@ from docker.errors import DockerException, ImageNotFound, NotFound
 
 logger = logging.getLogger("dashflex.docker_service")
 
+
+class DockerConnectionError(Exception):
+    """Falha ao criar cliente Docker (daemon parado ou socket inacessível)."""
+
 def _cpu_percent_unix(stats: dict[str, Any]) -> float:
     cpu_stats = stats.get("cpu_stats") or {}
     pre_cpu = stats.get("precpu_stats") or {}
@@ -552,8 +556,16 @@ def get_docker() -> DockerSvc:
             pass
         _svc = None
     if target:
-        _svc = DockerSvc.from_base_url(target.strip())
+        try:
+            _svc = DockerSvc.from_base_url(target.strip())
+        except DockerException as exc:
+            logger.warning("Docker indisponível (URL configurada): %s", exc)
+            raise DockerConnectionError(str(exc)) from exc
     else:
-        _svc = DockerSvc.from_env()
+        try:
+            _svc = DockerSvc.from_env()
+        except DockerException as exc:
+            logger.warning("Docker indisponível (from_env): %s", exc)
+            raise DockerConnectionError(str(exc)) from exc
     _cached_key = norm
     return _svc
